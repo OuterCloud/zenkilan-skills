@@ -10,6 +10,7 @@
 | [feishu-doc-collab](./feishu-doc-collab/) | 飞书文档协作：通过飞书云文档与团队成员进行异步协作（环境检测、配置引导、文档读写、评论、搜索） |
 | [generate-agents-md](./generate-agents-md/) | 为 git 项目生成或更新 AGENTS.md（面向 AI 编码 agent 的项目说明） |
 | [sync-mr](./sync-mr/) | 代码变更后的标准 MR 同步流程：更新测试文档、amend commit + force push、更新 MR 描述 |
+| [pptx-gen](./pptx-gen/) | 基于模板生成专业 PPT：分析模板结构、规划内容映射、自动填充生成 |
 
 ## 使用方式
 
@@ -104,6 +105,7 @@ read:
 | feishu-doc-collab | 飞书 MCP 端点（[配置方式](./feishu-doc-collab/README.md)） |
 | generate-agents-md | 无 |
 | sync-mr | `glab` CLI（GitLab MR 操作） |
+| pptx-gen | Python 3 + `python-pptx`；Node.js + `pptxgenjs`（`npm install`） |
 
 ## 许可
 
