@@ -25,6 +25,7 @@ ln -s $(pwd)/web-probe ~/.kiro/skills/web-probe
 ln -s $(pwd)/feishu-doc-collab ~/.kiro/skills/feishu-doc-collab
 ln -s $(pwd)/generate-agents-md ~/.kiro/skills/generate-agents-md
 ln -s $(pwd)/sync-mr ~/.kiro/skills/sync-mr
+ln -s $(pwd)/pptx-gen ~/.kiro/skills/pptx-gen
 ```
 
 ### Claude Code
@@ -105,7 +106,7 @@ read:
 | feishu-doc-collab | 飞书 MCP 端点（[配置方式](./feishu-doc-collab/README.md)） |
 | generate-agents-md | 无 |
 | sync-mr | `glab` CLI（GitLab MR 操作） |
-| pptx-gen | Python 3 + `python-pptx`；Node.js + `pptxgenjs`（`npm install`） |
+| pptx-gen | Python 3 + `lxml` + `PyMuPDF`；Keynote（macOS）或 LibreOffice（视觉 QA）；Node.js + PptxGenJS 仅用于用户明确无模板时的可选自由设计回退 |
 
 ## 许可
 
