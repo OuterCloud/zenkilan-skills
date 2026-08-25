@@ -104,11 +104,11 @@ Agent 路由判断：用户意图涉及文档读写/评论/搜索时命中本 sk
 
 **飞书文档 URL 格式**：
 - `https://*.feishu.cn/docx/<token>` — 标准飞书域名
-- `https://<企业自定义域名>.feishu.cn/docx/<token>` — 企业自定义域名（如 `tigertech.feishu.cn`）
+- `https://<企业自定义域名>.feishu.cn/docx/<token>` — 企业自定义域名（如 `mycompany.feishu.cn`）
 - `https://*.feishu.cn/wiki/<token>` — 知识库文档
 - 直接传 token 也可
 
-> **注意**：企业可能使用自定义子域名（如 `https://tigertech.feishu.cn/docx/xxx`），只要路径匹配 `/docx/<token>` 或 `/wiki/<token>` 格式即视为有效飞书文档 URL，不要因域名前缀不是 `open` 或 `www` 就判定无效。
+> **注意**：企业可能使用自定义子域名（如 `https://mycompany.feishu.cn/docx/xxx`），只要路径匹配 `/docx/<token>` 或 `/wiki/<token>` 格式即视为有效飞书文档 URL，不要因域名前缀不是 `open` 或 `www` 就判定无效。
 
 ### 场景 2: 更新文档
 

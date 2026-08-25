@@ -334,6 +334,6 @@ glab api --method PUT "projects/:fullpath/merge_requests/$IID" \
 | v1.1.0 | 步骤二有字面占位符 `<iid>`，照字面执行会生成名为 `test-plan-mr-<iid>.md` 的错误文件 | 改用变量（v1.3.0 进一步解决变量生命周期） |
 | v1.1.0 | 路径发现依赖 `xargs`，BSD 与 GNU 对空输入行为不一致 | 去掉 `xargs`，显式判空；多匹配时排序取首并告知用户 |
 | v1.1.0 | MR 描述内联传参，shell 提前展开内容里的反引号与 `$(...)`，静默篡改描述 | 改为引号 heredoc 写文件 + `"$(cat file)"` 传入 |
-| v1.0.0 | — | 从 glider 的项目级 steering 抽象为通用 skill，剔除部署步骤，测试文档路径改为自动发现 |
+| v1.0.0 | — | 从项目级 steering 抽象为通用 skill，剔除部署步骤，测试文档路径改为自动发现 |
 
 
