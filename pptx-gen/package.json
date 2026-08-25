@@ -1,0 +1,12 @@
+{
+  "name": "pptx-gen-scripts",
+  "version": "1.0.0",
+  "description": "PPT generation scripts using PptxGenJS (no-template fallback)",
+  "private": true,
+  "scripts": {
+    "create": "node scripts/create_deck.js"
+  },
+  "dependencies": {
+    "pptxgenjs": "3.12.0"
+  }
+}
