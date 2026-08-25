@@ -2,10 +2,11 @@
 """
 analyze_template.py - Analyze a .pptx template and output its structure as JSON.
 
+Outputs all slide layouts, placeholders, AND free textboxes on each slide,
+so the agent knows exactly what text to target for replacement.
+
 Usage:
     python analyze_template.py <template.pptx>
-
-Output: JSON describing all slide layouts, their placeholders, and existing slides.
 """
 
 import sys
@@ -16,124 +17,91 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
 
 
 def emu_to_inches(emu_value):
-    """Convert EMU to inches, rounded to 2 decimal places."""
     if emu_value is None:
         return None
     return round(emu_value / 914400, 2)
 
 
 def placeholder_type_name(ph_type):
-    """Get human-readable placeholder type name."""
     type_map = {
         PP_PLACEHOLDER.TITLE: "title",
         PP_PLACEHOLDER.CENTER_TITLE: "center_title",
         PP_PLACEHOLDER.SUBTITLE: "subtitle",
         PP_PLACEHOLDER.BODY: "body",
         PP_PLACEHOLDER.OBJECT: "object",
-        PP_PLACEHOLDER.DATE: "date",
-        PP_PLACEHOLDER.FOOTER: "footer",
-        PP_PLACEHOLDER.SLIDE_NUMBER: "slide_number",
-        PP_PLACEHOLDER.TABLE: "table",
-        PP_PLACEHOLDER.CHART: "chart",
-        PP_PLACEHOLDER.PICTURE: "picture",
-        PP_PLACEHOLDER.BITMAP: "bitmap",
-        PP_PLACEHOLDER.MEDIA_CLIP: "media_clip",
-        PP_PLACEHOLDER.ORG_CHART: "org_chart",
     }
     return type_map.get(ph_type, str(ph_type) if ph_type else "unknown")
 
 
-def get_text_summary(text_frame, max_len=80):
-    """Get a summary of text content from a text frame."""
-    if text_frame is None:
-        return None
-    full_text = text_frame.text.strip()
-    if not full_text:
+def get_shape_text(shape):
+    """Get text content of a shape, truncated for readability."""
+    if not shape.has_text_frame:
         return ""
-    if len(full_text) <= max_len:
-        return full_text
-    return full_text[:max_len] + "..."
-
-
-def analyze_placeholder(placeholder):
-    """Analyze a single placeholder shape."""
-    info = {
-        "idx": placeholder.placeholder_format.idx,
-        "name": placeholder.name,
-        "type": placeholder_type_name(placeholder.placeholder_format.type),
-        "position": {
-            "left_inches": emu_to_inches(placeholder.left),
-            "top_inches": emu_to_inches(placeholder.top),
-            "width_inches": emu_to_inches(placeholder.width),
-            "height_inches": emu_to_inches(placeholder.height),
-        },
-    }
-    # Add content summary if it has text
-    if placeholder.has_text_frame:
-        summary = get_text_summary(placeholder.text_frame)
-        if summary is not None:
-            info["content_summary"] = summary
-    return info
-
-
-def analyze_layout(layout):
-    """Analyze a single slide layout."""
-    placeholders = []
-    for ph in layout.placeholders:
-        placeholders.append(analyze_placeholder(ph))
-    # Sort by idx for consistent output
-    placeholders.sort(key=lambda x: x["idx"])
-    return {
-        "name": layout.name,
-        "placeholders": placeholders,
-    }
-
-
-def analyze_slide(slide, slide_index):
-    """Analyze a single slide."""
-    # Determine layout name
-    layout_name = slide.slide_layout.name if slide.slide_layout else "unknown"
-
-    placeholders = []
-    for ph in slide.placeholders:
-        ph_info = analyze_placeholder(ph)
-        # For existing slides, always try to get content
-        if ph.has_text_frame:
-            ph_info["content_summary"] = get_text_summary(ph.text_frame, max_len=120)
-        elif ph.shape_type == MSO_SHAPE_TYPE.PICTURE:
-            ph_info["content_summary"] = "[image]"
-        elif ph.shape_type == MSO_SHAPE_TYPE.TABLE:
-            ph_info["content_summary"] = "[table]"
-        placeholders.append(ph_info)
-
-    placeholders.sort(key=lambda x: x["idx"])
-
-    return {
-        "index": slide_index,
-        "layout": layout_name,
-        "placeholders": placeholders,
-    }
+    text = "\n".join(para.text for para in shape.text_frame.paragraphs)
+    return text[:200] + "..." if len(text) > 200 else text
 
 
 def analyze_template(pptx_path):
-    """Analyze a .pptx template file and return structured data."""
     prs = Presentation(pptx_path)
 
     result = {
         "file": pptx_path,
-        "slide_width_inches": emu_to_inches(prs.slide_width),
-        "slide_height_inches": emu_to_inches(prs.slide_height),
+        "slide_width_inches": round(prs.slide_width / 914400, 2),
+        "slide_height_inches": round(prs.slide_height / 914400, 2),
         "layouts": [],
         "existing_slides": [],
     }
 
-    # Analyze all slide layouts
+    # Analyze layouts
     for layout in prs.slide_layouts:
-        result["layouts"].append(analyze_layout(layout))
+        layout_info = {"name": layout.name, "placeholders": []}
+        for ph in layout.placeholders:
+            ph_info = {
+                "idx": ph.placeholder_format.idx,
+                "name": ph.name,
+                "type": placeholder_type_name(ph.placeholder_format.type),
+                "position": {
+                    "left_inches": emu_to_inches(ph.left),
+                    "top_inches": emu_to_inches(ph.top),
+                    "width_inches": emu_to_inches(ph.width),
+                    "height_inches": emu_to_inches(ph.height),
+                },
+            }
+            layout_info["placeholders"].append(ph_info)
+        result["layouts"].append(layout_info)
 
-    # Analyze existing slides
-    for i, slide in enumerate(prs.slides):
-        result["existing_slides"].append(analyze_slide(slide, i))
+    # Analyze existing slides — include ALL text content (placeholders + free textboxes)
+    for idx, slide in enumerate(prs.slides):
+        slide_info = {
+            "index": idx,
+            "layout": slide.slide_layout.name,
+            "placeholders": [],
+            "textboxes": [],
+        }
+
+        for shape in slide.shapes:
+            text = get_shape_text(shape)
+            shape_data = {
+                "name": shape.name,
+                "text": text,
+                "position": {
+                    "left_inches": emu_to_inches(shape.left),
+                    "top_inches": emu_to_inches(shape.top),
+                    "width_inches": emu_to_inches(shape.width),
+                    "height_inches": emu_to_inches(shape.height),
+                },
+            }
+
+            if shape.is_placeholder:
+                ph_fmt = shape.placeholder_format
+                shape_data["idx"] = ph_fmt.idx
+                shape_data["type"] = placeholder_type_name(ph_fmt.type)
+                slide_info["placeholders"].append(shape_data)
+            elif shape.has_text_frame and text.strip():
+                # Free textbox with content
+                slide_info["textboxes"].append(shape_data)
+
+        result["existing_slides"].append(slide_info)
 
     return result
 
@@ -144,13 +112,8 @@ def main():
         sys.exit(1)
 
     pptx_path = sys.argv[1]
-
-    try:
-        result = analyze_template(pptx_path)
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
+    result = analyze_template(pptx_path)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
