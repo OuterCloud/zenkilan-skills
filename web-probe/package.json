@@ -1,0 +1,13 @@
+{
+  "name": "web-probe",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "前端自动化验证：用 Playwright 驱动本机 Chrome，打开 URL、截图、抓包、收集 console",
+  "bin": {
+    "web-probe": "./web-probe.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.55.0"
+  }
+}
