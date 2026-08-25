@@ -8,6 +8,8 @@
 |-------|------|
 | [web-probe](./web-probe/) | 前端自动化验证：用本机 Chrome 打开指定 URL，按需截图、抓网络请求（HAR/JSON）、收集 console 日志 |
 | [feishu-doc-collab](./feishu-doc-collab/) | 飞书文档协作：通过飞书云文档与团队成员进行异步协作（环境检测、配置引导、文档读写、评论、搜索） |
+| [generate-agents-md](./generate-agents-md/) | 为 git 项目生成或更新 AGENTS.md（面向 AI 编码 agent 的项目说明） |
+| [sync-mr](./sync-mr/) | 代码变更后的标准 MR 同步流程：更新测试文档、amend commit + force push、更新 MR 描述 |
 
 ## 使用方式
 
@@ -19,4 +21,10 @@ ln -s $(pwd)/web-probe ~/.kiro/skills/web-probe
 
 # 示例：链接 feishu-doc-collab
 ln -s $(pwd)/feishu-doc-collab ~/.kiro/skills/feishu-doc-collab
+
+# 示例：链接 generate-agents-md
+ln -s $(pwd)/generate-agents-md ~/.kiro/skills/generate-agents-md
+
+# 示例：链接 sync-mr
+ln -s $(pwd)/sync-mr ~/.kiro/skills/sync-mr
 ```
