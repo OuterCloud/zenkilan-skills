@@ -13,18 +13,94 @@
 
 ## 使用方式
 
-将对应 skill 目录复制或软链到 `~/.kiro/skills/` 下即可在 Kiro CLI 中使用：
+这些 skill 的核心内容是 **SKILL.md**（纯 Markdown prompt），不依赖特定工具的私有能力，可适配任何支持自定义指令的 AI 编码工具。
+
+### Kiro CLI / Kiro IDE
+
+将 skill 目录软链到 `~/.kiro/skills/`：
 
 ```bash
-# 示例：链接 web-probe
 ln -s $(pwd)/web-probe ~/.kiro/skills/web-probe
-
-# 示例：链接 feishu-doc-collab
 ln -s $(pwd)/feishu-doc-collab ~/.kiro/skills/feishu-doc-collab
-
-# 示例：链接 generate-agents-md
 ln -s $(pwd)/generate-agents-md ~/.kiro/skills/generate-agents-md
-
-# 示例：链接 sync-mr
 ln -s $(pwd)/sync-mr ~/.kiro/skills/sync-mr
 ```
+
+### Claude Code
+
+将 SKILL.md 内容引入 Claude Code 的指令系统：
+
+```bash
+# 方式一：全局（所有项目生效）
+# 在 ~/.claude/commands/ 下创建命令文件
+mkdir -p ~/.claude/commands
+cp web-probe/SKILL.md ~/.claude/commands/web-probe.md
+cp generate-agents-md/SKILL.md ~/.claude/commands/generate-agents-md.md
+cp sync-mr/SKILL.md ~/.claude/commands/sync-mr.md
+
+# 方式二：项目级（在项目根目录）
+# 放入 .claude/commands/ 下作为斜杠命令
+mkdir -p .claude/commands
+cp /path/to/zenkilan-skills/sync-mr/SKILL.md .claude/commands/sync-mr.md
+```
+
+也可以在 `CLAUDE.md` 中用一行引用：
+
+```markdown
+对于代码提交流程，参考 /path/to/zenkilan-skills/sync-mr/SKILL.md
+```
+
+> **注意**：SKILL.md 顶部的 YAML frontmatter（`---` 包裹的元数据）是 Kiro 格式，Claude Code 会忽略它，不影响使用。
+
+### Cursor
+
+放入 `.cursor/rules/` 目录，将 frontmatter 改为 MDC 格式：
+
+```bash
+mkdir -p .cursor/rules
+
+# 复制并替换 frontmatter
+for skill in web-probe generate-agents-md sync-mr feishu-doc-collab; do
+  # 去掉 Kiro frontmatter，加 Cursor frontmatter
+  sed '1,/^---$/{ /^---$/!d; }' /path/to/zenkilan-skills/$skill/SKILL.md | \
+    sed '1s/^---$/---\ndescription: "'$skill'"\nglobs:\nalwaysApply: false\n---/' \
+    > .cursor/rules/$skill.mdc
+done
+```
+
+或手动复制 SKILL.md 内容，在顶部替换为：
+
+```yaml
+---
+description: "skill 的描述"
+globs:
+alwaysApply: false
+---
+```
+
+### Windsurf
+
+在 Windsurf 设置 → Rules 中，直接粘贴 SKILL.md 的正文内容（去掉 frontmatter）。
+
+### Aider
+
+在 `.aider.conf.yml` 中引用：
+
+```yaml
+read:
+  - /path/to/zenkilan-skills/generate-agents-md/SKILL.md
+  - /path/to/zenkilan-skills/sync-mr/SKILL.md
+```
+
+### 其他工具
+
+只要 AI 编码工具支持「自定义系统指令」或「读取额外文件作为上下文」，都可以直接使用 SKILL.md 的正文部分。YAML frontmatter 是可选元数据，去掉不影响功能。
+
+## 依赖说明
+
+| Skill | 额外依赖 |
+|-------|---------|
+| web-probe | Node.js + `npm install`（安装 playwright-core） |
+| feishu-doc-collab | 飞书 MCP 端点（[配置方式](./feishu-doc-collab/README.md)） |
+| generate-agents-md | 无 |
+| sync-mr | `glab` CLI（GitLab MR 操作） |
