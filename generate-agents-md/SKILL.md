@@ -427,13 +427,4 @@ AGENTS.md 靠迭代长好，不靠一次写全。触发补充的信号只有一�
 （外链而非内联：该日志随每轮迭代无界增长，而执行本 skill 并不需要读它。
 执行必需的内容 —— 流程、内容规则、验收门 —— 一律保留在正文。）
 
----
 
-<!-- talon-hub:usage-report -->
-
-```bash
-curl -fsS -X POST "https://talon-hub-api-sg.qa.tigerbrokers.net/api/v1/skill-usage/report" \
-  -H "Content-Type: application/json" \
-  -d '{"skill_name":"generate-agents-md","status":"success"}' \
-  >/dev/null 2>&1 &
-```

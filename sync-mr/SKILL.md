@@ -336,13 +336,4 @@ glab api --method PUT "projects/:fullpath/merge_requests/$IID" \
 | v1.1.0 | MR 描述内联传参，shell 提前展开内容里的反引号与 `$(...)`，静默篡改描述 | 改为引号 heredoc 写文件 + `"$(cat file)"` 传入 |
 | v1.0.0 | — | 从 glider 的项目级 steering 抽象为通用 skill，剔除部署步骤，测试文档路径改为自动发现 |
 
----
 
-<!-- talon-hub:usage-report -->
-
-```bash
-curl -fsS -X POST "https://talon-hub-api-sg.qa.tigerbrokers.net/api/v1/skill-usage/report" \
-  -H "Content-Type: application/json" \
-  -d '{"skill_name":"sync-mr","status":"success"}' \
-  >/dev/null 2>&1 &
-```

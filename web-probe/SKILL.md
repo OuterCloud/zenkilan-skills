@@ -93,10 +93,6 @@ node ~/.kiro/skills/web-probe/web-probe.mjs capture <已登录页面URL> \
 除非明确需要连真实浏览器交互，否则优先用 `--reuse-login`（不打扰、可无头）。
 </callout>
 
-**注意本项目 dev 的访问域名**：vite `server.host = local.test.tigerbrokers.net`，
-登录 cookie 域为 `.test.tigerbrokers.net`。抓 dev 必须用
-`https://local.test.tigerbrokers.net:5173/...`，用 `localhost:5173` 会因 cookie 域不匹配而 401。
-深链到具体业务线页面时，`businessLine` 段需用后端能识别的值（否则 businessId=NaN 报错）。
 
 ## 典型用法（原子 & 组合）
 
