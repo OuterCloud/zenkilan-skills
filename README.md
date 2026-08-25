@@ -1,6 +1,6 @@
 # zenkilan-skills
 
-个人沉淀的 Kiro CLI 自定义 Skills 合集。
+个人沉淀的 AI 编码 Agent 自定义 Skills 合集。适用于 Kiro CLI、Claude Code、Cursor、Windsurf、Aider 等支持自定义指令的工具。
 
 ## Skills
 
@@ -104,3 +104,7 @@ read:
 | feishu-doc-collab | 飞书 MCP 端点（[配置方式](./feishu-doc-collab/README.md)） |
 | generate-agents-md | 无 |
 | sync-mr | `glab` CLI（GitLab MR 操作） |
+
+## 许可
+
+MIT — 随便用，不需要署名。
