@@ -17,7 +17,7 @@ Chrome 把 cookie 存在 SQLite 文件：
 ```
 每行含 `host_key`（域）、`name`、`encrypted_value`（加密值）、`path`、`is_secure`、
 `is_httponly`、`expires_utc` 等。登录态即某些域（如 `.example.com`）下的
-会话 cookie（如 `app-dev-session` / `app-session`）。
+会话 cookie（如 `session` / `auth_token`）。
 
 用只读、immutable 模式读，不写不锁：
 ```
