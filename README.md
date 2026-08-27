@@ -23,7 +23,7 @@
 uv tool install lola-ai   # 或 pip install lola-ai
 
 # 2. 注册 marketplace
-lola market add zenkilan https://raw.githubusercontent.com/zenkilan/zenkilan-skills/main/lola-market.yml
+lola market add zenkilan https://raw.githubusercontent.com/OuterCloud/zenkilan-skills/main/lola-market.yml
 
 # 3. 安装全部 skills（选择目标工具）
 lola install zenkilan-skills -a claude-code   # Claude Code
@@ -39,7 +39,7 @@ lola install zenkilan-skills -a claude-code --scope user
 
 ```bash
 # 项目级安装（在项目根目录执行）
-lola mod add https://github.com/zenkilan/zenkilan-skills.git
+lola mod add https://github.com/OuterCloud/zenkilan-skills.git
 lola install zenkilan-skills -a claude-code
 
 # 或手动：将 SKILL.md 作为斜杠命令

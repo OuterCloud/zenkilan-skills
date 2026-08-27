@@ -5,7 +5,7 @@ modules:
   - name: "zenkilan-skills"
     description: "5 个实用 AI coding skills：web-probe（前端自动化验证）、feishu-doc-collab（飞书文档协作）、generate-agents-md（项目 AGENTS.md 生成）、sync-mr（MR 同步流程）、pptx-gen（基于模板生成 PPT）"
     version: "1.0.0"
-    repository: "https://github.com/zenkilan/zenkilan-skills.git"
+    repository: "https://github.com/OuterCloud/zenkilan-skills.git"
     tags:
       - "frontend"
       - "testing"
