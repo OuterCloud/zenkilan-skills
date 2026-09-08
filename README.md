@@ -8,6 +8,8 @@
 |-------|------|
 | [web-probe](./skills/web-probe/) | 前端自动化验证：用本机 Chrome 打开指定 URL，按需截图、抓网络请求（HAR/JSON）、收集 console 日志 |
 | [feishu-doc-collab](./skills/feishu-doc-collab/) | 飞书文档协作：通过飞书云文档与团队成员进行异步协作（环境检测、配置引导、文档读写、评论、搜索） |
+| [feishu-chat-collab](./skills/feishu-chat-collab/) | 飞书群聊协作/机器人：读群里的最新讨论 → 分析 → 拟回复 → 发送（interactive 卡片、@人、带链接） |
+| [feishu-project-collab](./skills/feishu-project-collab/) | 飞书项目（Meego）协作：查询与流转研发工作项，缺陷发现 → 处理 → 修复回填 → 流转解决 |
 | [generate-agents-md](./skills/generate-agents-md/) | 为 git 项目生成或更新 AGENTS.md（面向 AI 编码 agent 的项目说明） |
 | [sync-mr](./skills/sync-mr/) | 代码变更后的标准 MR 同步流程：更新测试文档、amend commit + force push、更新 MR 描述 |
 | [pptx-gen](./skills/pptx-gen/) | 基于模板生成专业 PPT：分析模板结构、规划内容映射、自动填充生成 |
@@ -54,6 +56,8 @@ cp skills/sync-mr/SKILL.md .claude/commands/sync-mr.md
 # 软链到 ~/.kiro/skills/
 ln -s $(pwd)/skills/web-probe ~/.kiro/skills/web-probe
 ln -s $(pwd)/skills/feishu-doc-collab ~/.kiro/skills/feishu-doc-collab
+ln -s $(pwd)/skills/feishu-chat-collab ~/.kiro/skills/feishu-chat-collab
+ln -s $(pwd)/skills/feishu-project-collab ~/.kiro/skills/feishu-project-collab
 ln -s $(pwd)/skills/generate-agents-md ~/.kiro/skills/generate-agents-md
 ln -s $(pwd)/skills/sync-mr ~/.kiro/skills/sync-mr
 ln -s $(pwd)/skills/pptx-gen ~/.kiro/skills/pptx-gen
@@ -63,7 +67,7 @@ ln -s $(pwd)/skills/pptx-gen ~/.kiro/skills/pptx-gen
 
 ```bash
 mkdir -p .cursor/rules
-for skill in web-probe generate-agents-md sync-mr feishu-doc-collab pptx-gen; do
+for skill in web-probe generate-agents-md sync-mr feishu-doc-collab feishu-chat-collab feishu-project-collab pptx-gen; do
   sed '1,/^---$/{ /^---$/!d; }' skills/$skill/SKILL.md | \
     sed '1s/^---$/---\ndescription: "'$skill'"\nglobs:\nalwaysApply: false\n---/' \
     > .cursor/rules/$skill.mdc
@@ -93,6 +97,8 @@ read:
 |-------|---------|
 | web-probe | Node.js + `npm install`（安装 playwright-core） |
 | feishu-doc-collab | 飞书 MCP 端点（[配置方式](./skills/feishu-doc-collab/README.md)） |
+| feishu-chat-collab | `curl`（发消息）+ `lark-cli`（读消息）；群自定义机器人 Webhook（[配置方式](./skills/feishu-chat-collab/README.md)） |
+| feishu-project-collab | 飞书项目（Meego）MCP Token（[配置方式](./skills/feishu-project-collab/README.md)） |
 | generate-agents-md | 无 |
 | sync-mr | `glab` CLI（GitLab MR 操作） |
 | pptx-gen | Python 3 + `lxml` + `PyMuPDF`；Keynote（macOS）或 LibreOffice（视觉 QA）；Node.js + PptxGenJS 仅用于用户明确无模板时的可选自由设计回退 |
