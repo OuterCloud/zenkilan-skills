@@ -11,7 +11,7 @@
 | [feishu-chat-collab](./skills/feishu-chat-collab/) | 飞书群聊协作/机器人：读群里的最新讨论 → 分析 → 拟回复 → 发送（interactive 卡片、@人、带链接） |
 | [feishu-project-collab](./skills/feishu-project-collab/) | 飞书项目（Meego）协作：查询与流转研发工作项，缺陷发现 → 处理 → 修复回填 → 流转解决 |
 | [generate-agents-md](./skills/generate-agents-md/) | 为 git 项目生成或更新 AGENTS.md（面向 AI 编码 agent 的项目说明） |
-| [sync-mr](./skills/sync-mr/) | 代码变更后的标准 MR 同步流程：更新测试文档、amend commit + force push、更新 MR 描述 |
+| [sync-mr](./skills/sync-mr/) | 代码变更后的标准 MR 同步流程：更新测试文档、新增 commit + push（不 amend、不 force）、更新 MR 描述 |
 | [pptx-gen](./skills/pptx-gen/) | 基于模板生成专业 PPT：分析模板结构、规划内容映射、自动填充生成 |
 
 ## 一键安装

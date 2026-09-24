@@ -1,7 +1,7 @@
 ---
 name: sync-mr
-version: 1.3.0
-description: "代码变更后的标准MR同步流程：更新测试文档、amend commit + force push、更新MR描述。当用户说'sync-mr'、'同步MR'、'跑一下sync流程'、或代码改完需要提交时触发。"
+version: 1.4.0
+description: "代码变更后的标准MR同步流程：更新测试文档、新增 commit + push（不 amend、不 force）、更新MR描述。当用户说'sync-mr'、'同步MR'、'跑一下sync流程'、或代码改完需要提交时触发。"
 metadata:
   inclusion: manual
 ---
@@ -11,7 +11,7 @@ metadata:
 代码变更完成后的标准三步同步流程：
 
 1. **更新测试文档** — 为本次变更补充测试用例
-2. **Amend + Force Push** — 合入当前 commit 并推送
+2. **新增 commit + push** — 本次改动单独成一条 commit,普通 push(**不 amend、不 force**)
 3. **更新 MR 描述** — 重新提炼 Summary（不是追加）
 
 ---
@@ -133,11 +133,17 @@ echo "下一章节号: $NEXT"
 
 ---
 
-## 步骤二：Amend Commit + Force Push
+## 步骤二：新增 Commit + Push
 
-⚠️ **不要用 `git add -u`。** 它会把工作区**所有**已跟踪文件的改动纳入 amend，
-若用户手头还有与本 MR 无关的改动，会被静默塞进 force push 到远端 —— 这类污染事后
-无法从提交历史里区分，因为它和本次改动混在同一个 commit 里。
+⚠️ **不再使用 `git commit --amend` + force push。** 每次 sync 产生**一条新的 commit**,
+用普通 `git push` 推送。原因见文末 v1.4.0 changelog：单 commit 不断 amend 会让 MR 变成
+一个上千行的黑盒(reviewer 无法按批次看增量、出问题无法二分定位),且多设备切换时
+远端被重写会与另一台机器的本地分叉。
+
+> 主干历史的整洁交给 GitLab merge 时勾选 **Squash commits**,不要靠本地 amend 去维持。
+
+⚠️ **不要用 `git add -u`。** 它会把工作区**所有**已跟踪文件的改动纳入本次提交，
+若用户手头还有与本 MR 无关的改动，会被静默一起提交推到远端。
 
 先列出待提交内容并确认范围：
 
@@ -159,12 +165,31 @@ git add path/to/changed1.go path/to/changed2.go
 git add "$DOC"                 # 测试文档（$DOC 见步骤一）
 
 git diff --cached --stat        # 复核 staged 内容与预期一致
-git commit --amend --no-edit
-git push --force-with-lease
+git commit -m "fix(ticket): 申请人搜索支持拼音"   # 只描述本次改动，不是整个 MR
+git push
 ```
 
-- `--force-with-lease` 失败 → 中断，提示 `git pull --rebase` 后重试
-- 不使用 `--force`，保护远端他人提交
+### commit message 规范
+
+- 走 Conventional Commits：`<type>(<scope>): <本次改动做了什么>`
+- **描述本次增量,不要复述整个 MR 的主题** —— 同一 MR 里出现 5 条一模一样的
+  `feat(portal): 应用自助接入` 等于没写
+- 一次 sync 内若改动跨了明显不同的关注点(如「修缺陷」+「补测试文档」),可以拆成
+  多条 commit；但不要为了拆而拆
+- 项目若有 commit-msg 钩子约定（如 `Changelog: skip`），按该项目规则附加
+
+### push 被拒怎么办
+
+普通 push 被拒只有一个原因：远端有你本地没有的提交（另一台机器推的，或他人推的）。
+
+```bash
+git pull --rebase && git push
+```
+
+**不要改用 `--force` / `--force-with-lease` 绕过。** 唯一允许 force 的场景是显式
+rebase 主干（`git fetch && git rebase origin/master`）后重推自己的功能分支，
+且必须先确认没有另一台机器/他人存在未拉取的提交 —— 这种场景要**先问用户**，
+不要在 sync-mr 流程里自作主张。
 
 ---
 
@@ -279,7 +304,8 @@ glab api --method PUT "projects/:fullpath/merge_requests/$IID" \
 | 无变更 | 中断 |
 | 无 opened MR | 提示先创建 |
 | glab 不存在 | 提示 `brew install glab` |
-| force push 失败 | 提示 rebase |
+| push 被拒（non-fast-forward） | `git pull --rebase` 后重试，**不要 force** |
+| 用户要求压成单 commit / rebase 主干后重推 | 属于 force 场景，先问用户确认，不在 sync-mr 默认流程内 |
 | 测试文档目录不存在 | 自动创建 |
 | Summary 已攒成长列表 | 重新提炼，原内容搬到「改动明细」 |
 | 描述中过期信息 | 就地更正并说明 |
@@ -324,6 +350,7 @@ glab api --method PUT "projects/:fullpath/merge_requests/$IID" \
 
 | 版本 | 问题 | 修复 |
 |------|------|------|
+| v1.4.0 | 每次 sync 都 amend 进同一条 commit,MR 最终是一个上千行的单 commit：reviewer 无法按批次看增量、出问题无法二分定位、revert 只能全撤；且 force push 会重写远端,多设备开发时与另一台机器的本地分叉（实际踩过：A 机 amend 重推后,B 机变成 1 ahead 1 behind,本地那条只能 reset --hard 丢弃） | 改为**每次 sync 新增一条 commit + 普通 `git push`**；补 commit message 规范（描述本次增量,非 MR 主题）；push 被拒走 `git pull --rebase`；force 仅在显式 rebase 主干时使用且须先问用户；主干历史整洁改由 GitLab merge 时勾选 Squash commits 保证 |
 | v1.3.0 | `git add -u` 把工作区所有已跟踪改动纳入 amend，无关改动被静默 force push 到远端，事后无法从历史中区分 | 禁用 `git add -u`；先 `git status --porcelain` 确认范围，按路径显式 stage，有无关改动时停下问用户 |
 | v1.3.0 | 变量不跨 shell 调用存活。agent 每步开新 shell，`$IID` 到步骤二为空，`glab mr update ""` 可能打到错误目标 | 给出「同一 shell 连续执行」或「每步重新派生」两种用法；派生末尾加 `: "${IID:?}"` 强制校验非空 |
 | v1.3.0 | 写进 skill 的 `-f description=@file` **是错的**，`-f/--raw-field` 不展开 `@`。实测时把真实 MR 描述整段替换成字面量 `@/tmp/desc_before.md` | 改为已验证的 `-F/--field`（用创建评论+删除的可撤销方式验证）；新增「验证破坏性命令时的额外纪律」 |
