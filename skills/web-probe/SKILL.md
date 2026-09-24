@@ -67,6 +67,32 @@ stdout 始终返回一段 JSON 摘要：`title` / `status` / 请求总数 / 失�
 | `--cookie <k=v;domain>` | 追加 cookie，可多次（domain 可选，默认取 URL host） |
 | `--user-agent <ua>` | 覆盖 UA |
 
+### 交互步骤（按命令行书写顺序执行）
+
+导航后、落盘前依次执行，使「点击后再截图 / 填表后再抓包」这类验收成为可能。
+四个 flag 可多次出现，**执行顺序 = 命令行里的书写顺序**（不是按 flag 种类分组）。
+
+| flag | 作用 |
+|------|------|
+| `--click <cssSelector>` | 点击元素 |
+| `--fill <selector>=><值>` | 填入输入框。**分隔符是 `=>` 而非 `=`**：选择器里常含 `=`（如 `[data-testid="x"]`），按首个 `=` 切会把选择器截断 |
+| `--sleep <ms>` | 步骤间等待（等请求返回/动画结束） |
+| `--expect-text <文本>` | 断言页面出现该文本（子串匹配），未出现则该步记为失败 |
+
+每步结果写入摘要的 `steps[]`（`kind` / `value` / `ok`，`expect-text` 另带命中数
+`count`，失败带 `error`）。**某步失败不中断后续步骤**，只在 `errors[]` 追加一条 ——
+便于一次跑完看到全部失败点，而不是每次只暴露第一个。
+
+```bash
+# 点开弹窗 → 填表 → 等接口 → 断言结果 → 截图
+node web-probe.mjs capture "http://localhost:5173/list" \
+  --click '[data-testid="create-btn"]' \
+  --fill '[data-testid="name-input"]=>测试应用' \
+  --click '[data-testid="submit"]' --sleep 800 \
+  --expect-text "创建成功" \
+  --screenshot
+```
+
 ### 复用登录态（抓需要登录的页面）
 
 | 方式 | flag | 说明 |
