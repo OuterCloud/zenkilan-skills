@@ -241,8 +241,8 @@ function parseArgs(argv) {
   // 产物类 flag：值可选。给了路径就用路径；只写 --xxx（后面没值或是下一个 flag）则启用+自动时间戳命名
   const optionalValueFlags = new Set(["screenshot", "har", "requests", "console"])
   const boolFlags = new Set(["full-page", "headed", "keep-open", "chrome-profile", "cdp", "restart-chrome", "reuse-login", "request-headers", "response-headers", "response-body"])
-  const repeatFlags = new Set(["header", "cookie"])
-  const out = { _: [], header: [], cookie: [] }
+  const repeatFlags = new Set(["header", "cookie", "click", "fill", "sleep", "expect-text"])
+  const out = { _: [], header: [], cookie: [], click: [], fill: [], sleep: [], "expect-text": [] }
   for (let i = 0; i < argv.length; i++) {
     const tok = argv[i]
     if (tok.startsWith("--")) {
@@ -261,8 +261,13 @@ function parseArgs(argv) {
       if (stringFlags.has(key) || repeatFlags.has(key)) {
         const val = argv[++i]
         if (val === undefined) throw new Error(`flag --${key} 缺少值`)
-        if (repeatFlags.has(key)) out[key].push(val)
-        else out[key] = val
+        if (repeatFlags.has(key)) {
+          out[key].push(val)
+          // 顺序敏感的交互步骤：额外按书写顺序记入 _steps
+          if (key === "click" || key === "fill" || key === "sleep" || key === "expect-text") {
+            ;(out._steps ||= []).push({ kind: key, value: val })
+          }
+        } else out[key] = val
         continue
       }
       throw new Error(`未知 flag: --${key}`)
@@ -547,6 +552,45 @@ async function main() {
     )
   }
   if (args["wait-ms"]) await page.waitForTimeout(Number(args["wait-ms"]))
+
+  // 交互步骤：严格按命令行出现顺序执行，使「点击后截图」这类验收成为可能
+  if (args._steps && args._steps.length) {
+    summary.steps = []
+    for (const st of args._steps) {
+      const rec = { ...st, ok: true }
+      try {
+        if (st.kind === "click") {
+          await page.click(st.value, { timeout })
+        } else if (st.kind === "fill") {
+          // 用 "=>" 分隔：CSS 属性选择器里含 "="（如 [data-testid="x"]），
+          // 按首个 "=" 切会把 selector 截断。兼容无 "=>" 时回退按首个 "=" 切。
+          let sel, val
+          const arrow = st.value.indexOf("=>")
+          if (arrow >= 0) {
+            sel = st.value.slice(0, arrow)
+            val = st.value.slice(arrow + 2)
+          } else {
+            const idx = st.value.indexOf("=")
+            if (idx < 0) throw new Error('--fill 需形如 "<selector>=><值>"')
+            sel = st.value.slice(0, idx)
+            val = st.value.slice(idx + 1)
+          }
+          await page.fill(sel.trim(), val, { timeout })
+        } else if (st.kind === "sleep") {
+          await page.waitForTimeout(Number(st.value))
+        } else if (st.kind === "expect-text") {
+          const n = await page.getByText(st.value, { exact: false }).count()
+          rec.count = n
+          if (n === 0) throw new Error(`页面未出现文本 "${st.value}"`)
+        }
+      } catch (e) {
+        rec.ok = false
+        rec.error = e.message
+        summary.errors.push(`步骤 ${st.kind} "${st.value}" 失败: ${e.message}`)
+      }
+      summary.steps.push(rec)
+    }
+  }
 
   // keep-open：保持窗口，直到用户关闭或超时
   if (keepOpen) {
