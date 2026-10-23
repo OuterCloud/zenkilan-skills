@@ -53,6 +53,21 @@ from platforms.base import Snapshot
 
 
 def run(cmd: list[str], cwd: Path | None = None, check: bool = True) -> str:
+    """Run a command and return its stdout as a scalar: trailing newline stripped.
+
+    Use this for values a caller will treat as one thing (a path, a SHA, a remote
+    URL). git always terminates stdout with a newline, and feeding that newline
+    into the next command silently corrupts it - `git -C "<path>\n"` fails with
+    "cannot change to ...". Use run_raw instead when the bytes are file content.
+    """
+    return run_raw(cmd, cwd, check).strip()
+
+
+def run_raw(cmd: list[str], cwd: Path | None = None, check: bool = True) -> str:
+    """Run a command and return its stdout verbatim, newline included.
+
+    For `git show` and friends, where the trailing newline is part of the file.
+    """
     proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     if check and proc.returncode != 0:
         raise FetchError(f"command failed: {' '.join(cmd)}\n{proc.stderr.strip()}")
@@ -183,7 +198,8 @@ def collect_context(repo: Path | None, snapshot: Snapshot, out_dir: Path) -> dic
         if change.deleted_file or not change.diff:
             continue
         try:
-            content = run(["git", "-C", str(repo), "show", f"{snapshot.sha}:{path}"], check=False)
+            # run_raw: the trailing newline belongs to the file content.
+            content = run_raw(["git", "-C", str(repo), "show", f"{snapshot.sha}:{path}"], check=False)
         except FetchError:
             continue
         if not content or "\x00" in content:
