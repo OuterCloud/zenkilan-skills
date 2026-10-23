@@ -1,0 +1,28 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Platform adapter tests
+        run: python3 -m unittest discover -s skills/mr-walkthrough/tests -v
+      - name: Example walkthrough validates
+        run: python3 skills/mr-walkthrough/scripts/render.py skills/mr-walkthrough/examples/mr-128.json --check
+      - name: Scripts compile
+        run: python3 -m compileall -q skills/mr-walkthrough/scripts
