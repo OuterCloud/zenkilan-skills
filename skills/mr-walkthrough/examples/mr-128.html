@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>MR Walkthrough</title>
+<style>
+  :root{
+    --bg:#0a0c11; --bg-2:#0e1118; --panel:#12151e; --panel-2:#171b26;
+    --line:#232838; --line-2:#2d3448;
+    --text:#e9ebf2; --muted:#9aa3b5; --dim:#6b7488;
+    --accent:#7dd3c0; --accent-2:#8b9cf7; --warn:#f2b880; --danger:#f28b82; --ok:#7ee2a8;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --serif:"Songti SC","Noto Serif SC",Georgia,serif;
+    --rail:308px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 620px at 78% -12%,rgba(139,156,247,.10),transparent 62%),
+      radial-gradient(900px 540px at -5% 108%,rgba(125,211,192,.07),transparent 58%),
+      var(--bg);
+    color:var(--text); font-family:var(--sans); font-size:15px; line-height:1.75;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  ::selection{background:rgba(125,211,192,.24)}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code,kbd{font-family:var(--mono)}
+  button{font-family:inherit}
+
+  #progress{position:fixed;inset:0 0 auto 0;height:2px;z-index:60;background:transparent}
+  #progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .35s ease}
+
+  .topbar{
+    position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;
+    padding:12px 26px;background:rgba(10,12,17,.78);backdrop-filter:blur(14px);
+    border-bottom:1px solid rgba(35,40,56,.7);
+  }
+  .brand{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--dim);display:flex;align-items:center;gap:9px}
+  .brand b{color:var(--accent);font-weight:600;letter-spacing:.1em}
+  .top-meta{display:flex;gap:8px;align-items:center;margin-left:6px;min-width:0}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;
+    border:1px solid var(--line);background:rgba(255,255,255,.02);color:var(--muted);
+    font-size:12px;white-space:nowrap
+  }
+  .chip b{color:var(--text);font-weight:500}
+  .chip.ok b{color:var(--ok)}
+  .spacer{flex:1}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:999px;
+    border:1px solid var(--line-2);color:var(--text);font-size:12.5px;background:rgba(255,255,255,.02);
+    transition:.18s
+  }
+  .pill:hover{text-decoration:none;border-color:var(--accent);color:var(--accent)}
+
+  .layout{display:flex;align-items:flex-start}
+  .rail{
+    position:sticky;top:53px;width:var(--rail);flex:0 0 var(--rail);height:calc(100vh - 53px);
+    display:flex;flex-direction:column;border-right:1px solid rgba(35,40,56,.75);
+    padding:26px 20px 18px 24px;overflow:hidden;scrollbar-width:thin
+  }
+  .rail-top{padding-bottom:20px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin:0 0 10px}
+  .rail h1{font-size:17px;line-height:1.5;margin:0 0 14px;font-weight:600;letter-spacing:-.01em}
+  .rail-stats{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+  .rail-stats span b{color:var(--text);font-weight:500}
+  .rail-stats .add{color:var(--ok)}
+  .rail-stats .del{color:var(--danger)}
+
+  .nav{margin-top:16px;flex:1;overflow:auto;min-height:0;padding-right:4px;scrollbar-width:thin}
+  .nav-group{margin-bottom:14px}
+  .nav-group>span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--dim);padding:0 8px 7px}
+  .nav button{
+    all:unset;display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:start;
+    width:100%;padding:7px 9px;border-radius:8px;cursor:pointer;color:var(--muted);
+    font-size:13px;line-height:1.45;transition:.15s
+  }
+  .nav button:hover{background:rgba(255,255,255,.035);color:var(--text)}
+  .nav button i{font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--dim);padding-top:2px}
+  .nav button>span:not(.tick){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .nav button.current{background:linear-gradient(90deg,rgba(125,211,192,.13),rgba(125,211,192,.02));color:var(--text);box-shadow:inset 2px 0 0 var(--accent)}
+  .nav button.current i{color:var(--accent)}
+  .nav button .tick{font-size:10px;color:var(--ok);opacity:0;padding-top:2px}
+  .nav button.seen .tick{opacity:.9}
+
+  .rail-foot{display:flex;align-items:center;gap:14px;padding-top:16px;border-top:1px solid var(--line);color:var(--dim);font-size:11px;line-height:1.6}
+  .ring{position:relative;width:46px;height:46px;flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring circle{fill:none;stroke-width:3}
+  .ring .bg{stroke:var(--line-2)}
+  .ring .fg{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .35s ease}
+  .ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:10.5px;color:var(--text)}
+  kbd{display:inline-block;padding:0 5px;border:1px solid var(--line-2);border-bottom-width:2px;border-radius:4px;font-size:10px;color:var(--muted);background:rgba(255,255,255,.03)}
+
+  .main{flex:1;min-width:0;padding:46px 52px 90px;max-width:1010px;margin:0 auto}
+  .chapter{animation:rise .3s ease both}
+  .chapter[hidden]{display:none}
+  @keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+
+  .ch-head{margin-bottom:28px}
+  .ch-head h2{font-size:30px;line-height:1.3;letter-spacing:-.02em;margin:0 0 10px;font-weight:600}
+  .ch-sub{color:var(--muted);margin:0;max-width:68ch}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;padding:10px 0 34px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+  .hero::before{content:"";position:absolute;inset:-40px -60px auto -60px;height:320px;pointer-events:none;
+    background:radial-gradient(600px 260px at 25% 0%,rgba(139,156,247,.12),transparent 70%);z-index:-1}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .badge{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;padding:4px 9px;border-radius:6px;border:1px solid var(--line-2);color:var(--muted)}
+  .badge.state{color:var(--ok);border-color:rgba(126,226,168,.35);background:rgba(126,226,168,.06)}
+  .hero h1{color:#f3f5fa;font-size:clamp(28px,3.1vw,36px);line-height:1.28;letter-spacing:-.025em;margin:0 0 18px;font-weight:650;max-width:30ch}
+  .one-liner{font-size:17.5px;line-height:1.75;color:#c7cddb;margin:0 0 26px;max-width:64ch}
+  .hero-meta{display:flex;gap:18px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:12.5px}
+  .hero-meta .dot{width:3px;height:3px;border-radius:50%;background:var(--dim)}
+  .hero-cta{display:flex;align-items:center;gap:16px;margin-top:30px}
+  .btn{
+    all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:9px;padding:11px 20px;border-radius:10px;
+    background:var(--accent);color:#08110f;font-weight:600;font-size:14px;transition:.18s
+  }
+  .btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(125,211,192,.22)}
+  .btn.ghost{background:transparent;border:1px solid var(--line-2);color:var(--text);font-weight:500}
+  .btn.ghost:hover{border-color:var(--accent);color:var(--accent);box-shadow:none}
+  .hint{color:var(--dim);font-size:12px}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:26px 0}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.008));border:1px solid var(--line);border-radius:14px;padding:22px 24px}
+  .card h3{margin:0 0 12px;font-size:14px;letter-spacing:.02em;color:var(--text);display:flex;align-items:center;gap:8px}
+  .card h3 .ico{color:var(--accent);font-family:var(--mono);font-size:12px}
+  .card p{margin:0 0 8px;color:#c3c9d6;font-size:14px}
+  .evidence{list-style:none;padding:0;margin:14px 0 0;border-top:1px dashed var(--line);padding-top:14px}
+  .evidence li{position:relative;padding-left:14px;font-size:13px;color:var(--muted);margin-bottom:9px;line-height:1.65}
+  .evidence li::before{content:"·";position:absolute;left:0;top:0;color:var(--accent);font-weight:700}
+  .evidence .ref{color:var(--dim);font-size:11.5px;margin-left:6px;white-space:nowrap}
+  .evidence code{font-size:11.5px;color:var(--accent-2);background:rgba(139,156,247,.08);padding:1px 6px;border-radius:4px}
+  .steps-list{margin:0;padding:0;list-style:none;counter-reset:s}
+  .steps-list li{counter-increment:s;position:relative;padding-left:30px;margin-bottom:10px;font-size:14px;color:#c3c9d6}
+  .steps-list li::before{content:counter(s);position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:6px;
+    background:rgba(125,211,192,.1);border:1px solid rgba(125,211,192,.25);color:var(--accent);
+    font-family:var(--mono);font-size:10.5px;display:grid;place-items:center}
+
+  .section-title{display:flex;align-items:baseline;gap:12px;margin:34px 0 16px}
+  .section-title h3{margin:0;font-size:16px;font-weight:600;letter-spacing:.01em}
+  .section-title span{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.16em}
+
+  .impact{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .impact-item{display:flex;gap:12px;padding:15px 16px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.012)}
+  .lvl{width:6px;height:6px;border-radius:50%;margin-top:8px;flex:none}
+  .lvl.high{background:var(--danger);box-shadow:0 0 10px rgba(242,139,130,.5)}
+  .lvl.medium{background:var(--warn)}
+  .lvl.low{background:var(--ok)}
+  .impact-item b{display:block;font-size:13.5px;margin-bottom:2px}
+  .impact-item p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.6}
+
+  .risk-box{display:flex;gap:18px;padding:20px 22px;border:1px solid rgba(242,184,128,.25);border-radius:12px;background:rgba(242,184,128,.045);margin-top:14px}
+  .risk-level{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--warn);white-space:nowrap;padding-top:2px}
+  .risk-box ul{margin:0;padding-left:18px;color:#cfd5e1;font-size:13.5px}
+  .risk-box li{margin-bottom:5px}
+
+  /* ---------- features ---------- */
+  .feature-grid{display:grid;grid-template-columns:1fr;gap:12px}
+  .feature{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:start;padding:18px 20px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.015);transition:.18s}
+  .feature[data-step]{cursor:pointer}
+  .feature[data-step]:hover{border-color:var(--line-2);background:rgba(255,255,255,.03);transform:translateX(2px)}
+  .status{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;padding:4px 8px;border-radius:5px;white-space:nowrap;margin-top:3px}
+  .status.fixed{color:var(--ok);background:rgba(126,226,168,.1);border:1px solid rgba(126,226,168,.28)}
+  .status.changed{color:var(--accent-2);background:rgba(139,156,247,.1);border:1px solid rgba(139,156,247,.28)}
+  .status.unchanged{color:var(--dim);border:1px solid var(--line-2)}
+  .feature h4{margin:0 0 5px;font-size:14.5px;font-weight:600}
+  .feature p{margin:0;color:var(--muted);font-size:13px;line-height:1.65}
+  .feature .go{color:var(--dim);font-family:var(--mono);font-size:11px;white-space:nowrap;padding-top:4px}
+
+  /* ---------- files table ---------- */
+  .files-tools{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .files-tools input{
+    all:unset;width:min(320px,60%);padding:8px 12px;border:1px solid var(--line);border-radius:8px;
+    background:rgba(255,255,255,.02);color:var(--text);font-size:12.5px;font-family:var(--mono)
+  }
+  .files-tools input::placeholder{color:var(--dim)}
+  .table-wrap{border:1px solid var(--line);border-radius:12px;overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{text-align:left;font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
+    padding:11px 16px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--line);font-family:var(--mono)}
+  tbody td{padding:12px 16px;border-bottom:1px solid rgba(35,40,56,.6);vertical-align:top}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr[data-step]{cursor:pointer}
+  tbody tr[data-step]:hover{background:rgba(255,255,255,.025)}
+  .path{font-family:var(--mono);font-size:12px;color:#dfe4ef;word-break:normal;overflow-wrap:anywhere}
+  .table-wrap table{table-layout:fixed}
+  .table-wrap th:nth-child(1){width:41%}
+  .table-wrap th:nth-child(2){width:9%}
+  .table-wrap th:nth-child(3){width:8%}
+  .table-wrap th:nth-child(4){width:42%}
+  .role{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap}
+  .role.core{color:var(--accent);border-color:rgba(125,211,192,.3)}
+  .role.test{color:var(--accent-2);border-color:rgba(139,156,247,.3)}
+  .role.context{color:var(--dim)}
+  .diff-num{font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+  .diff-num .a{color:var(--ok)}
+  .diff-num .d{color:var(--danger)}
+  .file-sum{color:var(--muted);font-size:12.5px;line-height:1.6}
+  .legend{color:var(--dim);font-size:11.5px;margin-top:10px}
+
+  /* ---------- chain ---------- */
+  .chain{position:relative;margin-top:8px;padding-left:4px}
+  .chain-node{position:relative;display:grid;grid-template-columns:76px 30px 1fr;padding-bottom:4px}
+  .chain-node .lane{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--dim);text-align:right;padding:20px 12px 0 0}
+  .chain-node .spine{position:relative}
+  .chain-node .spine::before{content:"";position:absolute;left:50%;top:24px;bottom:-14px;width:1.5px;transform:translateX(-50%);background:linear-gradient(rgba(125,211,192,.55),rgba(125,211,192,.18))}
+  .chain-node:last-child .spine::before{display:none}
+  .chain-node .dot{position:absolute;left:50%;top:20px;width:9px;height:9px;transform:translateX(-50%);border-radius:50%;background:var(--panel);border:2px solid var(--accent)}
+  .chain-node .node{position:relative;padding:15px 18px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.015);margin-bottom:10px}
+  .chain-node .node[data-step]{cursor:pointer}
+  .chain-node .node[data-step]:hover{border-color:var(--accent);background:rgba(125,211,192,.04)}
+  .chain-node .node h4{margin:0 0 4px;font-size:14px}
+  .chain-node .node p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .chain-node .node .files{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+  .chain-node .node .files code{font-size:10.5px;color:var(--accent-2);background:rgba(139,156,247,.07);padding:1px 6px;border-radius:4px}
+  .chain-edge{margin:0 0 0 106px;padding-left:22px;position:relative;font-family:var(--mono);font-size:10.5px;color:var(--dim);height:26px;line-height:26px}
+  .chain-edge::before{content:"↓";position:absolute;left:0;top:0;color:var(--line-2);z-index:1}
+  .chain-edge::after{content:"";position:absolute;left:-15px;top:-12px;bottom:-24px;width:1.5px;background:rgba(125,211,192,.32)}
+
+  /* ---------- decision ---------- */
+  .decision{border-left:2px solid var(--line-2);padding:2px 0 2px 22px;margin-bottom:26px;position:relative}
+  .decision::before{content:"";position:absolute;left:-5px;top:8px;width:8px;height:8px;border-radius:50%;background:var(--panel);border:2px solid var(--accent-2)}
+  .decision h4{margin:0 0 8px;font-size:15px;font-weight:600}
+  .decision .row{display:grid;grid-template-columns:66px 1fr;gap:12px;margin-bottom:7px;font-size:13.5px}
+  .decision .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--dim);padding-top:3px}
+  .decision .v{color:#c8cedb}
+  .decision .v.why{color:var(--muted)}
+
+  /* ---------- step ---------- */
+  .step-head{display:grid;grid-template-columns:64px 1fr;gap:20px;align-items:start;margin-bottom:24px}
+  .step-num{font-family:var(--serif);font-size:46px;line-height:1;color:transparent;-webkit-text-stroke:1px var(--line-2);padding-top:2px}
+  .step-head h2{font-size:27px;line-height:1.32;margin:6px 0 10px;letter-spacing:-.02em;font-weight:600}
+  .filebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  .filebar .f{color:var(--accent-2);background:rgba(139,156,247,.07);border:1px solid rgba(139,156,247,.18);padding:2px 8px;border-radius:5px}
+  .filebar .l{color:var(--muted)}
+  .filebar a{font-size:11px}
+
+  .callout{display:grid;grid-template-columns:92px 1fr;gap:16px;padding:14px 18px;border-radius:10px;margin-bottom:12px;font-size:13.5px}
+  .callout .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--dim);padding-top:4px}
+  .callout p{margin:0;color:#cbd1de;line-height:1.7}
+  .callout.goal{background:rgba(125,211,192,.055);border:1px solid rgba(125,211,192,.16)}
+  .callout.why{background:rgba(139,156,247,.05);border:1px solid rgba(139,156,247,.14)}
+  .callout.goal .k{color:var(--accent)}
+  .callout.why .k{color:var(--accent-2)}
+
+  .snippet{margin:18px 0}
+  .code{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0b0e15}
+  .code-head{display:flex;align-items:center;gap:10px;padding:9px 14px;background:#0f131c;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .code-head .lang{margin-left:auto;color:var(--dim);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase}
+  .code-head button{all:unset;cursor:pointer;color:var(--dim);font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:4px}
+  .code-head button:hover{color:var(--accent);background:rgba(125,211,192,.08)}
+  .code-body{overflow:auto;padding:12px 0;max-height:560px}
+  .cl{display:flex;gap:16px;padding:0 16px;white-space:pre;font:12.5px/1.8 var(--mono);min-height:1.8em}
+  .cl.hl{background:linear-gradient(90deg,rgba(125,211,192,.10),rgba(125,211,192,.015));box-shadow:inset 2px 0 0 var(--accent)}
+  .ln{flex:none;width:2.4em;text-align:right;color:#454d61;user-select:none}
+  .lc{color:#c9d0dd}
+  .tok-c{color:#5b6478;font-style:italic}
+  .tok-s{color:#a8d5b6}
+  .tok-n{color:#f0b98c}
+  .tok-k{color:#c9a7f0}
+  .tok-t{color:#8fb0ff}
+  .tok-f{color:#7dd3c0}
+  .snippet .note{color:var(--muted);font-size:12.5px;margin:8px 2px 0;padding-left:10px;border-left:2px solid var(--line-2)}
+
+  .dl{display:flex;gap:16px;padding:0 16px;white-space:pre;font:12.5px/1.75 var(--mono);min-height:1.75em}
+  .dl .pre{flex:none;width:1em;color:#454d61;text-align:center}
+  .dl.add{background:rgba(126,226,168,.07);box-shadow:inset 2px 0 0 rgba(126,226,168,.5)}
+  .dl.add .pre{color:var(--ok)}
+  .dl.del{background:rgba(242,139,130,.06);box-shadow:inset 2px 0 0 rgba(242,139,130,.45)}
+  .dl.del .pre{color:var(--danger)}
+  .dl.hunk{color:var(--accent-2);background:rgba(139,156,247,.05);font-size:11.5px;padding-top:4px;padding-bottom:4px}
+  .dl.meta{color:var(--dim);font-size:11px}
+
+  ul.explain{margin:18px 0;padding:0;list-style:none}
+  ul.explain li{position:relative;padding-left:24px;margin-bottom:11px;color:#c6ccd9;font-size:14px;line-height:1.75}
+  ul.explain li::before{content:"→";position:absolute;left:0;color:var(--accent);font-family:var(--mono);font-size:12px}
+  ul.explain code,.takeaway code,.callout code,.feature code,.file-sum code{
+    font-size:11.5px;color:var(--accent-2);background:rgba(139,156,247,.08);padding:1px 5px;border-radius:4px;word-break:break-word
+  }
+
+  .takeaway{padding:16px 20px;border-radius:10px;background:rgba(126,226,168,.05);border:1px solid rgba(126,226,168,.18);font-size:13.5px;color:#d3e8dc;margin:20px 0}
+  .takeaway b{color:var(--ok);font-family:var(--mono);font-size:10px;letter-spacing:.14em;display:block;margin-bottom:5px}
+  .next-hint{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:12.5px;margin-top:24px;padding-top:16px;border-top:1px dashed var(--line)}
+  .next-hint b{color:var(--muted);font-weight:500}
+
+  /* ---------- database ---------- */
+  .banner{display:flex;gap:16px;align-items:flex-start;padding:20px 22px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.015);margin-bottom:20px}
+  .banner .mark{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim);border:1px solid var(--line-2);border-radius:5px;padding:3px 8px;white-space:nowrap;margin-top:2px}
+  .banner h3{margin:0 0 6px;font-size:15px}
+  .banner p{margin:0;color:var(--muted);font-size:13.5px}
+  .banner.none{border-color:rgba(126,226,168,.22);background:rgba(126,226,168,.04)}
+  .banner.none .mark{color:var(--ok);border-color:rgba(126,226,168,.3)}
+  .db-table{border:1px solid var(--line);border-radius:11px;padding:16px 18px;margin-bottom:12px;background:rgba(255,255,255,.012)}
+  .db-table .top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .db-table .op{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--warn);border:1px solid rgba(242,184,128,.3);padding:2px 7px;border-radius:4px}
+  .db-table .name{font-family:var(--mono);font-size:13px;color:var(--text)}
+  .db-table p{margin:8px 0 0;color:var(--muted);font-size:12.5px}
+  .kv{margin:22px 0}
+  .kv .row{display:grid;grid-template-columns:108px 1fr;gap:18px;padding:13px 0;border-top:1px solid var(--line);font-size:13.5px}
+  .kv .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--dim);padding-top:3px}
+  .kv .v{color:#c8cedb}
+
+  /* ---------- tests ---------- */
+  .test-cases{display:grid;gap:10px}
+  .test-case{padding:16px 18px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.012)}
+  .test-case .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .test-case .name{font-size:13.5px;font-weight:550}
+  .type{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;padding:2px 7px;border-radius:4px;border:1px solid var(--line-2);color:var(--muted)}
+  .type.unit{color:var(--accent);border-color:rgba(125,211,192,.3)}
+  .type.integration{color:var(--accent-2);border-color:rgba(139,156,247,.3)}
+  .type.e2e{color:var(--warn);border-color:rgba(242,184,128,.3)}
+  .test-case p{margin:4px 0 0;font-size:12.5px;color:var(--muted)}
+  .test-case .assert{color:#b9c2d2}
+  .gaps{margin-top:20px;padding:16px 18px;border-radius:10px;border:1px dashed rgba(242,184,128,.3);background:rgba(242,184,128,.03)}
+  .gaps b{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--warn);display:block;margin-bottom:8px}
+  .gaps ul{margin:0;padding-left:17px;color:var(--muted);font-size:13px}
+
+  /* ---------- verify ---------- */
+  .pre{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+  .pre span{font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid var(--line);color:var(--muted);background:rgba(255,255,255,.015)}
+  .check{display:grid;grid-template-columns:26px 1fr;gap:14px;padding:18px 18px 16px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:rgba(255,255,255,.012);cursor:pointer;transition:.18s}
+  .check:hover{border-color:var(--line-2)}
+  .check input{appearance:none;width:18px;height:18px;margin:3px 0 0;border:1.5px solid var(--line-2);border-radius:5px;cursor:pointer;position:relative}
+  .check input:checked{background:var(--accent);border-color:var(--accent)}
+  .check input:checked::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:#07100e;font-size:12px;font-weight:700}
+  .check:has(input:checked){opacity:.62}
+  .check:has(input:checked) .ci{text-decoration:line-through;text-decoration-color:var(--dim)}
+  .check .ci{font-size:14px;font-weight:550;margin-bottom:6px}
+  .check .ci .idx{font-family:var(--mono);font-size:10px;color:var(--dim);margin-right:9px;font-weight:400}
+  .check .row{display:grid;grid-template-columns:56px 1fr;gap:10px;font-size:12.5px;margin-top:4px}
+  .check .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--dim);padding-top:2px}
+  .check .expect{color:#cfd6e3}
+  .check .observe{color:var(--muted)}
+  .check .fail{color:rgba(242,184,128,.85)}
+  .regression{margin-top:20px;padding:18px 20px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.012)}
+  .regression b{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--dim);display:block;margin-bottom:9px}
+  .regression ul{margin:0;padding-left:17px;color:var(--muted);font-size:13px}
+
+  /* ---------- appendix ---------- */
+  .glossary{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .term{padding:15px 17px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.012)}
+  .term b{display:block;font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:5px}
+  .term p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.65}
+  .questions{margin-top:22px}
+  .questions ol{padding-left:20px;color:#c6ccd9;font-size:13.5px}
+  .questions li{margin-bottom:9px}
+
+  /* ---------- pager ---------- */
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:54px;padding-top:22px;border-top:1px solid var(--line)}
+  .pager button{all:unset;cursor:pointer;padding:9px 16px;border:1px solid var(--line-2);border-radius:9px;color:var(--muted);font-size:13px;transition:.18s}
+  .pager button:hover{border-color:var(--accent);color:var(--accent)}
+  .pager button:disabled{opacity:.28;cursor:default}
+  .pager button:disabled:hover{border-color:var(--line-2);color:var(--muted)}
+  .pager .label{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--dim);text-align:center;flex:1}
+
+  .menu-btn{display:none;position:fixed;right:18px;bottom:18px;z-index:70;width:46px;height:46px;border-radius:50%;
+    border:1px solid var(--line-2);background:var(--panel);color:var(--text);font-size:18px;cursor:pointer}
+
+  body.focus-mode .rail{display:none}
+  body.focus-mode .main{max-width:860px}
+
+  @media (max-width:1080px){
+    :root{--rail:270px}
+    .main{padding:36px 32px 80px}
+    .hero h1{font-size:33px}
+  }
+  @media (max-width:860px){
+    .rail{position:fixed;inset:53px 0 auto 0;width:100%;height:calc(100vh - 53px);background:#0b0e14;z-index:55;display:none;padding:22px}
+    body.nav-open .rail{display:flex}
+    .main{padding:26px 20px 80px}
+    .menu-btn{display:grid;place-items:center}
+    .hero h1{font-size:28px}
+    .one-liner{font-size:15.5px}
+    .grid-2,.glossary,.impact{grid-template-columns:1fr}
+    .step-head{grid-template-columns:1fr;gap:6px}
+    .step-num{font-size:34px}
+    .callout{grid-template-columns:1fr;gap:4px}
+    .chain-node{grid-template-columns:1fr;gap:4px}
+    .chain-node .lane{text-align:left;padding:0}
+    .chain-node .spine{display:none}
+    .chain-edge{margin-left:0;height:auto;line-height:1.6;padding:2px 0 2px 0}
+    html,body{overflow-x:hidden}
+    .main{width:100%;max-width:100%}
+    .topbar{gap:10px;padding:10px 14px}
+    .brand{display:none}
+    .top-meta{flex:1;min-width:0;overflow:hidden}
+    .top-meta .chip{display:none}
+    .top-meta .chip:first-child{display:inline-flex}
+    .top-meta .chip:first-child b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #mrLink{flex:none;padding:5px 10px;font-size:11.5px}
+    .hero h1,.one-liner,.card p,.evidence li{overflow-wrap:anywhere}
+    .table-wrap table{min-width:660px}
+    .code{max-width:100%}
+    .decision .row{grid-template-columns:1fr;gap:2px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+  @media print{
+    body{background:#fff;color:#111}
+    .topbar,.rail,.pager,#progress,.menu-btn{display:none!important}
+    .chapter[hidden]{display:block!important;page-break-after:always}
+    .main{padding:0;max-width:100%}
+    .card,.code,.feature,.test-case,.check,.banner,.term{border-color:#ddd;background:#fff}
+    .lc,.ln{color:#333}
+  }
+</style>
+</head>
+<body>
+<div id="progress"><i></i></div>
+
+<header class="topbar">
+  <div class="brand"><b>◈</b> MR WALKTHROUGH</div>
+  <div class="top-meta" id="topMeta"></div>
+  <div class="spacer"></div>
+  <a class="pill" id="mrLink" target="_blank" rel="noopener noreferrer">在代码托管平台打开 ↗</a>
+</header>
+
+<div class="layout">
+  <aside class="rail" id="rail">
+    <div class="rail-top">
+      <p class="eyebrow" id="railProject"></p>
+      <h1 id="railTitle"></h1>
+      <div class="rail-stats" id="railStats"></div>
+    </div>
+    <nav class="nav" id="nav" aria-label="章节导航"></nav>
+    <div class="rail-foot">
+      <div class="ring">
+        <svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true">
+          <circle class="bg" cx="23" cy="23" r="19"></circle>
+          <circle class="fg" id="ringFg" cx="23" cy="23" r="19" stroke-dasharray="119.4" stroke-dashoffset="119.4"></circle>
+        </svg>
+        <b id="ringLabel">0%</b>
+      </div>
+      <div>已读 <b id="readCount" style="color:var(--text)">0</b>/<span id="totalCount">0</span> 节<br>
+      <kbd>←</kbd> <kbd>→</kbd> 切换 · <kbd>F</kbd> 专注</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="stage"></div>
+    <footer class="pager">
+      <button id="prevBtn">← 上一步</button>
+      <span class="label" id="pagerLabel"></span>
+      <button id="nextBtn">下一步 →</button>
+    </footer>
+  </main>
+</div>
+
+<button class="menu-btn" id="menuBtn" aria-label="目录">☰</button>
+
+<script id="mr-data" type="application/json">{"schema_version":1,"meta":{"title":"fix(coupon): 领券接口并发下重复发放，补幂等键与唯一索引","subtitle":"一次 request_id 从页面到 MySQL 唯一索引的完整路径","project":"acme/order-service","mr_iid":128,"mr_url":"https://gitlab.example.com/acme/order-service/-/merge_requests/128","author":"陈默 (@chenmo)","source_branch":"fix/coupon-idempotent","target_branch":"master","state":"merged","created_at":"2026-10-18","merged_at":"2026-10-20","head_sha":"3f9c2ab7d1e8456f0c9b2d7a6e5f4c3b2a1908d7","generated_at":"2026-10-23","stats":{"files":5,"additions":186,"deletions":23,"commits":3},"tags":["并发幂等","唯一索引","存量迁移"],"platform":"gitlab"},"overview":{"one_liner":"因为 `Grant` 用「先查再插」判重、表上又没有唯一键兜底，超时重试和并发请求都会各插一行；这次用 `uk_user_activity_request` 把重复挡在写入层，冲突时回读已有记录按成功返回。","problem":{"headline":"同一个用户在同一活动里领到了 3 张券","body":"`Grant` 在事务里先 `SELECT ... WHERE user_id = ? AND activity_id = ?` 判断「有没有领过」，没有记录才 INSERT。判重读的是历史快照，不是「这一次请求有没有落过库」；两个并发请求在 SELECT 时都读到空，随后各自插入。网关对读超时的请求重试 2 次，重试是新的连接、新的执行，同样绕过判重。`coupon_grant` 上只有自增主键，最后一道防线不存在，重复行就这么落下来了。","evidence":[{"text":"活动 `20261018_autumn` 的 `coupon_grant` 里，`user_id=9001` 有 3 行，`request_id` 两行为空、一行与其余不同","ref":"MR 描述"},{"text":"网关访问日志里同一 trace 的两次 `POST /api/coupon/grant` 都返回 200，响应里的 `grant_id` 不同","ref":"网关日志 20261017"},{"text":"`Grant` 在 INSERT 前只有一条按 `user_id`、`activity_id` 的 SELECT 判重，没有捕获 1062 的分支","ref":"head 3f9c2ab7 的 internal/coupon/grant.go"}]},"solution":["先在 handler 里把 `request_id` 变成必填：请求体没有就取 `X-Request-Id`，仍然为空直接 400，服务端不再补造。","再让 `Grant` 只发一条 INSERT，删掉先查后插的判重，「是否重复」交给唯一索引裁决。","插入撞 1062 时走 `resolveExisting`，按 `(user_id, activity_id, request_id)` 回读已落库的行，返回成功并标记 `replayed=true`。","存量表先备份并清理同一幂等键下的重复行、回填历史空键，再加 `uk_user_activity_request`，顺序不能反。","补并发用例：同一 `request_id` 20 并发只落一行，换 `request_id` 仍然各落一行。"],"impact":[{"area":"领券接口","detail":"`POST /api/coupon/grant` 从「先查后插」改为「插入后按冲突回读」；同一 `request_id` 重复调用返回同一个 `grant_id`。","level":"high"},{"area":"客户端契约","detail":"`request_id` 从可选变必填；请求体与 `X-Request-Id` 都没有时返回 400 `missing_request_id`，不再静默生成。","level":"high"},{"area":"coupon-issued 事件","detail":"只有真正插入成功才发布；回读路径不再发第二条，下游不会重复收到发券事件。","level":"medium"},{"area":"存量数据","detail":"上线前必须清理历史重复行并回填空 `request_id`，否则 `ALTER` 加唯一索引会直接失败。","level":"high"},{"area":"活动对账口径","detail":"`grant` 行数不再等于请求数，活动核销与报表要按 `request_id` 去重统计。","level":"low"}],"risk":{"level":"中","items":["存量重复行只能按 `MIN(id)` 保留一条，清理脚本不判断业务归属，删之前必须导出备份表。","`request_id` 变必填后，订单详情页的补领入口如果还在老版本客户端上，会直接拿到 400，需要与客户端版本一起发。","唯一索引只约束同一个 `request_id`：客户端换新键连点仍然能落多行，限领规则没有在这次改动里收紧。","回滚只能摘代码，唯一索引、清理过的重复行、已经发出去的券都退不回去。"]},"reading_time":9},"features":[{"title":"同一请求不再重复发券","status":"fixed","detail":"同一 `request_id` 的并发或重试请求只落一行 `coupon_grant`，后到的请求回读同一个 `grant_id`。","files":["internal/coupon/grant.go","internal/coupon/idempotency.go"],"step":"s3"},{"title":"缺 request_id 的请求被拒绝","status":"changed","detail":"`POST /api/coupon/grant` 的请求体与 `X-Request-Id` 都为空时返回 400 `missing_request_id`，服务端不再用随机值兜底。","files":["internal/coupon/handler.go"],"step":"s2"},{"title":"coupon-issued 事件只发一次","status":"fixed","detail":"回读路径 `replayed=true` 直接返回，不再发布事件；`marketing-service` 不会收到重复消息。","files":["internal/coupon/grant.go"],"step":"s7"},{"title":"领券响应多出 replayed 字段","status":"changed","detail":"响应体新增 `replayed`，原有 `grant_id`、`status` 保持不变；客户端可以据此区分首发与重放。","files":["internal/coupon/handler.go"],"step":"s2"},{"title":"活动限领规则没有变","status":"unchanged","detail":"限领张数仍由 `marketing-service` 按 `coupon-issued` 累计判断，order-service 不做前置拦截；唯一索引只保证同一次请求不重复落库。","files":["internal/coupon/grant.go"],"step":"s7"}],"files":[{"path":"internal/coupon/grant.go","role":"core","change":"modified","additions":78,"deletions":19,"summary":"领券主流程：删掉先查后插的判重，改成单条 INSERT，冲突交给 `resolveExisting`；事件发布收敛到 `publishIssued`。","step":"s3"},{"path":"internal/coupon/handler.go","role":"core","change":"modified","additions":21,"deletions":4,"summary":"接口入口：`request_id` 变必填并加长度上限，响应体透出 `replayed`。","step":"s2"},{"path":"internal/coupon/idempotency.go","role":"core","change":"added","additions":34,"deletions":0,"summary":"新增冲突回读与 1062 翻译：把唯一键冲突变成「这次请求已经成功过」。","step":"s4"},{"path":"migrations/20261018_coupon_grant_unique.sql","role":"migration","change":"added","additions":26,"deletions":0,"summary":"存量清理 + 唯一索引 DDL，必须与应用发布放在同一个停写窗口内、且排在发版之前。","step":"s5"},{"path":"internal/coupon/grant_test.go","role":"test","change":"added","additions":27,"deletions":0,"summary":"锁契约：同 `request_id` 串行与 20 并发都只落一行，换键各落一行。","step":"s6"}],"chain":{"summary":"一次领券从页面点击走到 `coupon_grant` 落库、再到 `coupon-issued` 出队：唯一索引在写入层裁决重复，回读把冲突翻译成成功。","nodes":[{"id":"page","lane":"前端","label":"领券页","detail":"用户点领取时生成一次 `request_id`，放进请求头和请求体；手动再点或网络重试都复用同一个值，页面不会重新生成。","files":[]},{"id":"gw","lane":"网关","label":"gateway","detail":"鉴权、限流，透传 `X-Request-Id`。读超时按 2 次重试，重试打到同一个实例也仍然是一次新的 HTTP 请求——去重只能由后端做。","files":[]},{"id":"api","lane":"后端","label":"grant handler","detail":"`POST /api/coupon/grant` 绑定活动与 `request_id`，缺失即 400；handler 不参与判重，直接调用 `grant.Grant`。","files":["handler.go"],"step":"s2"},{"id":"svc","lane":"后端","label":"幂等插入","detail":"`Grant` 只发一条 INSERT，把「是否重复」交给唯一索引；返回 1062 时不再直接报错。","files":["grant.go"],"step":"s3"},{"id":"idem","lane":"后端","label":"冲突回读","detail":"按 `(user_id, activity_id, request_id)` 读回已落库那一行，返回 `replayed=true`，并跳过事件发布。","files":["idempotency.go"],"step":"s4"},{"id":"db","lane":"MySQL","label":"coupon_grant","detail":"写入目标表。`uk_user_activity_request` 是唯一裁决者；索引不存在时这条链路会静默退化成重复插入。","files":["coupon_grant"]},{"id":"mig","lane":"MySQL","label":"存量迁移","detail":"发布前执行 `20261018_coupon_grant_unique.sql`：备份、删重复、回填空键，最后 `ALTER` 加索引。顺序反了会直接 1062 失败。","files":["20261018_coupon_grant_unique.sql"],"step":"s5"},{"id":"mq","lane":"消息队列","label":"coupon-issued","detail":"只有真正插入成功的那一次才发布；重放路径不发第二条，消费端的幂等压力随之下降。","files":["coupon-issued"],"step":"s7"},{"id":"mkt","lane":"下游","label":"marketing-service","detail":"消费 `coupon-issued` 写发券流水并推送通知。它按 `grant_id` 去重，重复事件就是重复通知；事件变少后报表口径要跟着改。","files":[],"step":"s7"}],"edges":[{"from":"page","to":"gw","label":"POST /api/coupon/grant + X-Request-Id"},{"from":"gw","to":"api","label":"透传 X-Request-Id，读超时重试 2 次"},{"from":"api","to":"svc","label":"h.grant.Grant(ctx, req)"},{"from":"svc","to":"idem","label":"Error 1062 → ErrDuplicateKey"},{"from":"idem","to":"db","label":"SELECT … WHERE user_id = ? AND activity_id = ? AND request_id = ?"},{"from":"db","to":"mig","label":"发布顺序：先跑迁移，INSERT 才有唯一兜底"},{"from":"mig","to":"mq","label":"首次 INSERT 成功 → coupon-issued"},{"from":"mq","to":"mkt","label":"coupon-issued → 发券流水 / 通知"}]},"design":{"summary":"三个岔路口：判重放应用层还是数据库、幂等键由谁生成、冲突回什么。每个选择都留下了一个可以指认的代价。","decisions":[{"question":"为什么删掉 SELECT 判重，而不是把它挪进事务里加锁？","choice":"删掉应用层判重，改成单条 INSERT + 唯一索引兜底，冲突后回读。","why":"`SELECT ... FOR UPDATE` 锁的是已经存在的行，第一次领取时锁不到任何行；并发下两个事务仍能同时通过判重。唯一索引是数据库层面的裁决，不看读的时序。","cost":"语义从「查了再说」变成「先写后兜」。任何缺索引的环境都会立刻暴露成重复数据，而不是被应用层悄悄掩盖。"},{"question":"`request_id` 由客户端传，还是服务端生成？","choice":"客户端生成并传，服务端只在 `X-Request-Id` 存在时兜底，两者都没有就 400。","why":"服务端生成的值只能标识「这一次连接」。重试是新连接，生成出来仍然是新值——这正是重复发放的成因。","cost":"接口从可选字段变必填，老客户端要跟着发版；漏改的调用方会拿到 400 而不是成功。"},{"question":"冲突时回读返回成功，还是返回「已领取」错误码？","choice":"回读已有行，返回 200 并带 `replayed=true`。","why":"调用方关心的是「这次请求最终有没有券」，不是「这一行是不是我插的」。返回错误会诱导客户端重试，重试再撞一次冲突，把问题放大。","cost":"客户端必须读 `replayed` 才知道是首发还是重放；不看这个字段的调用方可能把同一张券展示两次。"},{"question":"唯一索引为什么带 `request_id`，而不是只留 `(user_id, activity_id)`？","choice":"`uk_user_activity_request` 用三列组合。","why":"只留两列等于把「一个用户一个活动只能一张券」写死进表结构，和「限领 N 张」的活动配置直接冲突；带 `request_id` 只约束同一次请求。","cost":"幂等只到请求粒度：用户换一个 `request_id` 仍然能落第二行，限领张数依旧依赖下游判断。"}]},"steps":[{"id":"s1","nav":"先看契约","title":"先把「什么算重复」写成测试","kicker":"契约先行","file":"internal/coupon/grant_test.go","lines":"L18-L51","goal":"用一组用例固定「同 request_id 只发一张、换 request_id 各发一张」，后面的实现都对着它写。","why_first":"重复发放是行为问题，不是语法问题。先看断言，才知道后面每一步在保住什么。","snippets":[{"label":"grant_test.go · 同 request_id 串行两次（截取 TestGrant_SameRequestID）","lang":"go","code":"func TestGrant_SameRequestID(t *testing.T) {\n\tdb := testdb.New(t)\n\tsvc := NewService(db)\n\n\tfirst, err := svc.Grant(ctx, GrantRequest{\n\t\tUserID:     9001,\n\t\tActivityID: \"20261018_autumn\",\n\t\tRequestID:  \"req-7f3a91\",\n\t})\n\tif err != nil {\n\t\tt.Fatalf(\"first grant: %v\", err)\n\t}\n\tif first.Replayed {\n\t\tt.Fatalf(\"first grant should not be replayed\")\n\t}\n\n\tsecond, err := svc.Grant(ctx, GrantRequest{\n\t\tUserID:     9001,\n\t\tActivityID: \"20261018_autumn\",\n\t\tRequestID:  \"req-7f3a91\",\n\t})\n\tif err != nil {\n\t\tt.Fatalf(\"replay grant: %v\", err)\n\t}\n\tif !second.Replayed {\n\t\tt.Fatalf(\"second grant should be replayed\")\n\t}\n\tif second.GrantID != first.GrantID {\n\t\tt.Fatalf(\"grant id changed: %d -\u003e %d\", first.GrantID, second.GrantID)\n\t}\n\tif n := testdb.CountGrants(t, db, 9001, \"20261018_autumn\"); n != 1 {\n\t\tt.Fatalf(\"coupon_grant rows = %d, want 1\", n)\n\t}\n}","highlight":[25,28,31],"note":"三条断言缺一不可：只断言 `Replayed` 会被「返回 true 但什么都没查」骗过，只数行数又看不出返回的是不是同一张券。"}],"explain":["断言有三条：`Replayed` 从 false 变 true、两次 `grant_id` 相同、表里只有一行。少任何一条都测不出「重复发放」——只测返回值会漏掉真正写了几行。","第二次调用用的是同一个 `request_id`，模拟的是网关重试；用户重新点一次领取应当换新键，两种行为必须分开测。","用例直接调 `Service.Grant`，绕过 HTTP：幂等语义属于业务层，handler 的 400 校验由另一组用例覆盖。","`testdb.CountGrants` 直接数行数，不看返回值——返回值可以被代码伪造成「看起来幂等」，行数不会。"],"takeaway":"幂等的定义落在「表里有几行」上，不在接口返回什么。","next":"那 `request_id` 是从哪进来的？缺失时又会发生什么？"},{"id":"s2","nav":"幂等键入口","title":"入口：把 request_id 变成必填","kicker":"契约落到接口","file":"internal/coupon/handler.go","lines":"L63-L102","goal":"让每个领券请求都带一个稳定的 `request_id`，缺失时立刻 400，而不是在服务端补一个随机值。","why_first":"幂等键如果由服务端生成，每次重试都是新键，唯一索引拦不住任何东西。入口不成立，后面的索引就是摆设。","snippets":[{"label":"handler.go · Grant 入口（截取绑定到响应组装）","lang":"go","code":"// Grant 处理 POST /api/coupon/grant。\nfunc (h *Handler) Grant(c *gin.Context) {\n\tvar req grantRequest\n\tif err := c.ShouldBindJSON(\u0026req); err != nil {\n\t\tc.JSON(http.StatusBadRequest, errorBody{Code: \"invalid_body\", Message: err.Error()})\n\t\treturn\n\t}\n\treq.RequestID = strings.TrimSpace(req.RequestID)\n\tif req.RequestID == \"\" {\n\t\treq.RequestID = strings.TrimSpace(c.GetHeader(\"X-Request-Id\"))\n\t}\n\tif req.RequestID == \"\" {\n\t\tc.JSON(http.StatusBadRequest, errorBody{\n\t\t\tCode:    \"missing_request_id\",\n\t\t\tMessage: \"request_id 不能为空\",\n\t\t})\n\t\treturn\n\t}\n\tif len(req.RequestID) \u003e 64 {\n\t\tc.JSON(http.StatusBadRequest, errorBody{\n\t\t\tCode:    \"invalid_request_id\",\n\t\t\tMessage: \"request_id 超过 64 个字符\",\n\t\t})\n\t\treturn\n\t}\n\tresult, err := h.grant.Grant(c.Request.Context(), coupon.GrantRequest{\n\t\tUserID:     c.GetInt64(ctxUserID),\n\t\tActivityID: req.ActivityID,\n\t\tRequestID:  req.RequestID,\n\t})\n\tif err != nil {\n\t\th.writeGrantError(c, err)\n\t\treturn\n\t}\n\tc.JSON(http.StatusOK, grantResponse{\n\t\tGrantID:  result.GrantID,\n\t\tStatus:   result.Status,\n\t\tReplayed: result.Replayed,\n\t})\n}","highlight":[9,14,38],"note":"容易看漏的是第 9 行：请求体没带 `request_id` 时先取 `X-Request-Id`，只有两者都空才 400——网关补的头不会白丢。"}],"explain":["兜底顺序是请求体 → `X-Request-Id` → 400。两层都没有就拒绝，服务端不生成：生成等于每次重试都是新键，幂等从入口就失效。","长度上限 64 与索引列宽对齐，超长在入库前拦住；否则 MySQL 要么报 1406，要么按列宽截断，错误码和日志都对不上。","`Replayed` 原样透出到响应，不翻译成不同的状态码：调用方把重放当失败去重试，只会再撞一次唯一索引。","这里没有任何「是否已领取」的预查询，判重整体挪到了写入层。"],"takeaway":"幂等键必须由发起方生成、并在重试时复用；服务端只校验，不补造。","next":"入口只保证键存在，真正的去重发生在 `Grant` 的那一条 INSERT 上。"},{"id":"s3","nav":"只发一条插入","title":"Grant：删掉判重，只发一条 INSERT","kicker":"写入层裁决","file":"internal/coupon/grant.go","lines":"L120-L144","goal":"把「先查后插」改成单条 INSERT，让唯一索引决定这次请求是不是重复。","why_first":"这里就是被删掉的那段判重代码的位置。看懂它为什么不可靠，才看得懂 `resolveExisting` 为什么必须存在。","snippets":[{"label":"grant.go · Grant 主流程","lang":"go","code":"// Grant 只发一条 INSERT，是否重复交给 uk_user_activity_request 裁决。\nfunc (s *Service) Grant(ctx context.Context, req GrantRequest) (GrantResult, error) {\n\tif req.RequestID == \"\" {\n\t\treturn GrantResult{}, ErrMissingRequestID\n\t}\n\n\tnow := s.clock.Now()\n\trow := GrantRow{\n\t\tUserID:     req.UserID,\n\t\tActivityID: req.ActivityID,\n\t\tRequestID:  req.RequestID,\n\t\tStatus:     StatusIssued,\n\t\tCreatedAt:  now,\n\t}\n\tgrantID, err := s.store.Insert(ctx, row)\n\tif errors.Is(err, ErrDuplicateKey) {\n\t\treturn s.resolveExisting(ctx, req)\n\t}\n\tif err != nil {\n\t\treturn GrantResult{}, fmt.Errorf(\"insert coupon_grant: %w\", err)\n\t}\n\n\ts.publishIssued(ctx, grantID, row)\n\treturn GrantResult{GrantID: grantID, Status: StatusIssued}, nil\n}","highlight":[16,17,23],"note":"冲突分支排在 `if err != nil` 之前，顺序一换，1062 就会被当成未知错误返回 500。"}],"explain":["判重从「先 SELECT 再决定」变成「INSERT 失败后再回读」。写只有一条，重复的判定在唯一索引的行锁内完成，不受两个事务的读时序影响。","`errors.Is(err, ErrDuplicateKey)` 判断的是 1062 翻译后的哨兵错误；把 `mysql.MySQLError` 直接往上抛，调用方就得认驱动类型。","`row` 显式带 `RequestID` 与 `Status`，不吃表默认值——默认值一变，幂等键就可能静默变成空串。","`publishIssued` 只在插入成功这条路径上调用，回读路径走不到这里，`coupon-issued` 不会重复。","事件发布放在事务之外：券已经落库，发布失败不回滚，只记日志和计数器（见最后一步）。"],"takeaway":"并发下的唯一性只能由数据库的唯一索引裁决，应用层的判断都建立在过期的快照上。","next":"1062 在哪里被翻译成 `ErrDuplicateKey`？回读又按什么键找行？"},{"id":"s4","nav":"冲突回读","title":"回读：把 1062 翻译成「已经发过」","kicker":"把冲突变成成功","file":"internal/coupon/idempotency.go","lines":"L12-L42","goal":"插入撞唯一索引时，按同一组键读回已落库的那一行，返回首发同样的 `grant_id`，并标记 `replayed`。","why_first":"冲突处理决定用户看到的是 500 还是「领取成功」。这一步不动表，却决定修复能不能用。","snippets":[{"label":"idempotency.go · 冲突回读与 1062 翻译","lang":"go","code":"// resolveExisting 在同一次请求已经落库时，返回首发的记录。\nfunc (s *Service) resolveExisting(ctx context.Context, req GrantRequest) (GrantResult, error) {\n\trow, err := s.store.FindByRequest(ctx, req.UserID, req.ActivityID, req.RequestID)\n\tif err != nil {\n\t\treturn GrantResult{}, fmt.Errorf(\"find coupon_grant by request: %w\", err)\n\t}\n\tif row == nil {\n\t\t// 唯一索引报了冲突却读不到行，说明回读键与索引不一致，不能当成成功。\n\t\treturn GrantResult{}, ErrIdempotencyMismatch\n\t}\n\ts.logger.Info(\"coupon grant replayed\",\n\t\t\"grant_id\", row.ID,\n\t\t\"user_id\", row.UserID,\n\t\t\"activity_id\", row.ActivityID,\n\t\t\"request_id\", row.RequestID,\n\t)\n\treturn GrantResult{\n\t\tGrantID:  row.ID,\n\t\tStatus:   row.Status,\n\t\tReplayed: true,\n\t}, nil\n}\n\n// IsDuplicateKey 把 MySQL 1062 翻译成哨兵错误，业务层不必依赖驱动类型。\nfunc IsDuplicateKey(err error) bool {\n\tvar mysqlErr *mysql.MySQLError\n\tif !errors.As(err, \u0026mysqlErr) {\n\t\treturn false\n\t}\n\treturn mysqlErr.Number == 1062\n}","highlight":[7,9,20],"note":"`row == nil` 这条守卫最容易被删掉「因为它不会发生」——它恰恰是索引列与回读键不一致时唯一的信号。"}],"explain":["回读的键与唯一索引完全一致（`user_id`、`activity_id`、`request_id`），少一列会读到别人的行，多一列会读不到。","`row == nil` 直接报 `ErrIdempotencyMismatch`：索引说冲突、按索引却查不到，只可能是代码与索引列不一致。当成成功处理，重复数据会重新出现。","`Replayed: true` 是这次改动对外新增的唯一语义；`Status` 用 `row.Status` 原样返回，历史行如果是 `revoked`，重放也应当是 `revoked`。","`IsDuplicateKey` 用 `errors.As` 而不是类型断言，因为 store 可能在错误外面再包一层 `%w`。","回读不发布 `coupon-issued`：事件只属于首次落库，重放再发一次，下游就会发两张券的通知。"],"takeaway":"把「唯一键冲突」翻译成「这次请求已经成功过」，重复调用才既安全又幂等。","next":"这套代码只有在唯一索引存在的库上才成立——存量库里的重复数据怎么办？"},{"id":"s5","nav":"存量迁移","title":"迁移：先清重复行，再加唯一索引","kicker":"先清后加","file":"migrations/20261018_coupon_grant_unique.sql","lines":"L1-L30","goal":"让存量表满足新约束：先备份并处理同一幂等键下的重复行、回填历史空键，再加 `uk_user_activity_request`。","why_first":"`ALTER` 加唯一索引遇到重复数据会直接失败，迁移卡在中间，应用发不出去。顺序反了没有补救余地。","snippets":[{"label":"20261018_coupon_grant_unique.sql · 备份 / 清理 / 回填 / 加索引","lang":"sql","code":"-- 20261018_coupon_grant_unique.sql\n-- 执行顺序：先跑本脚本，再发布带 request_id 校验的应用版本。\n\n-- 1. 备份将被删除的行，对账与回滚都要用。\nCREATE TABLE coupon_grant_dup_20261018 AS\nSELECT g.*\nFROM coupon_grant g\nJOIN (\n\tSELECT user_id, activity_id, request_id, MIN(id) AS keep_id\n\tFROM coupon_grant\n\tWHERE request_id \u003c\u003e ''\n\tGROUP BY user_id, activity_id, request_id\n\tHAVING COUNT(*) \u003e 1\n) d ON d.user_id = g.user_id\n\tAND d.activity_id = g.activity_id\n\tAND d.request_id = g.request_id\n\tAND d.keep_id \u003c\u003e g.id;\n\n-- 2. 删除重复行，同一幂等键只保留 id 最小的一行。\nDELETE g FROM coupon_grant g\nJOIN coupon_grant_dup_20261018 d ON d.id = g.id;\n\n-- 3. 历史行没有 request_id，回填成 legacy-\u003cid\u003e，否则它们绕不过唯一索引。\nUPDATE coupon_grant\n\tSET request_id = CONCAT('legacy-', id)\n\tWHERE request_id = '' OR request_id IS NULL;\n\n-- 4. 加唯一索引，应用代码的幂等全靠它。\nALTER TABLE coupon_grant\n\tADD UNIQUE KEY uk_user_activity_request (user_id, activity_id, request_id);","highlight":[13,20,30],"note":"第 13 行的 `HAVING COUNT(*) \u003e 1` 决定了备份表里有什么；`WHERE request_id \u003c\u003e ''` 让空键行不参与去重，它们靠第 24 行的 UPDATE 单独处理。"}],"explain":["顺序是备份、删重复、回填空键、加索引。备份放最前面，因为删除不可逆，客服补偿与对账都要靠它。","保留 `MIN(id)` 而不是最早的 `created_at`：id 是自增主键，与插入顺序严格一致；并发下 `created_at` 可能落在同一秒，选不出唯一的一行。","历史行没有 `request_id`，回填成 `legacy-\u003cid\u003e` 才能进唯一索引；不填的话这些行要么在列非空时互相冲突，要么在列可空时继续绕过幂等。","备份表 `coupon_grant_dup_20261018` 不在脚本里删除，对账完成、确认没有补发单之后再手工 drop。","删重复到加索引之间如果有新插入，仍会产生新的重复行，整段必须在一个停写窗口内跑完。"],"takeaway":"加唯一索引的前提是存量已经满足约束，清理必须写在同一次迁移里、并且排在 ALTER 之前。","next":"单请求的路径闭环了，那两个请求同时打进来呢？测试怎么证明只落一行？"},{"id":"s6","nav":"并发用例","title":"20 个并发同 request_id，只允许一行落库","kicker":"把竞态钉住","file":"internal/coupon/grant_test.go","lines":"L55-L88","goal":"用真实并发把「只落一行」测出来，并覆盖「换 request_id 就该是新的一张」这个反向变体。","why_first":"逻辑正确不代表并发正确。前面的用例是串行的，重试模型没有被真正压到。","snippets":[{"label":"grant_test.go · 20 goroutine 同键并发（截取 TestGrant_ConcurrentSameRequest）","lang":"go","code":"func TestGrant_ConcurrentSameRequest(t *testing.T) {\n\tdb := testdb.New(t)\n\tsvc := NewService(db)\n\n\tconst n = 20\n\tvar wg sync.WaitGroup\n\tids := make([]int64, n)\n\terrs := make([]error, n)\n\tfor i := 0; i \u003c n; i++ {\n\t\twg.Add(1)\n\t\tgo func(i int) {\n\t\t\tdefer wg.Done()\n\t\t\tres, err := svc.Grant(ctx, GrantRequest{\n\t\t\t\tUserID:     9002,\n\t\t\t\tActivityID: \"20261018_autumn\",\n\t\t\t\tRequestID:  \"req-concurrent-1\",\n\t\t\t})\n\t\t\tids[i], errs[i] = res.GrantID, err\n\t\t}(i)\n\t}\n\twg.Wait()\n\n\tfor i := 0; i \u003c n; i++ {\n\t\tif errs[i] != nil {\n\t\t\tt.Fatalf(\"goroutine %d: %v\", i, errs[i])\n\t\t}\n\t\tif ids[i] != ids[0] {\n\t\t\tt.Fatalf(\"goroutine %d got grant %d, want %d\", i, ids[i], ids[0])\n\t\t}\n\t}\n\tif got := testdb.CountGrants(t, db, 9002, \"20261018_autumn\"); got != 1 {\n\t\tt.Fatalf(\"coupon_grant rows = %d, want 1\", got)\n\t}\n}","highlight":[11,27,31],"note":"`ids` 与 `errs` 按下标各写各的，不需要加锁；真正需要等的只有 `wg.Wait()`，写成 channel 收集反而容易漏掉某个 goroutine 的错误。"}],"explain":["20 个 goroutine 同时打同一个 `request_id`，模拟的是网关重试叠加用户双击；顺序调用两次在旧代码里也是对的，测不出问题。","断言「所有 goroutine 拿到同一个 `grant_id`」比「只有一个成功」更严：它同时要求冲突分支被翻译成成功回读。","反向变体在同一个文件里（`TestGrant_DifferentRequest`）：换键应当落两行、两个不同 `grant_id`，防止把幂等做成「一人一活动一张」。","用例连真实 MySQL（`testdb.New`），不是内存 fake：唯一索引的行为发生在行锁上，fake 模拟不出来。"],"takeaway":"幂等的测试必须并发跑，串行用例证明不了唯一索引真的挡得住。","next":"索引生效后，下游收到的 `coupon-issued` 会有什么变化？回滚时又该怎么退？"},{"id":"s7","nav":"下游与回滚","title":"下游：事件变少了，回滚只退一半","kicker":"变更的边界","file":"internal/coupon/grant.go","lines":"L160-L177","goal":"看清修复对 `coupon-issued` 与 `marketing-service` 的连带影响，以及回滚时哪些东西退不回去。","why_first":"发券事件数量会下降，这在下游是口径变化，不是纯收益；回滚也不是 `git revert` 就完事。","snippets":[{"label":"grant.go · publishIssued：只在首发路径上调用","lang":"go","code":"// publishIssued 只在首次落库后调用，重放路径不会进来。\n// marketing-service 按 grant_id 去重，重复事件会变成重复通知。\nfunc (s *Service) publishIssued(ctx context.Context, grantID int64, row GrantRow) {\n\tevt := CouponIssued{\n\t\tGrantID:    grantID,\n\t\tUserID:     row.UserID,\n\t\tActivityID: row.ActivityID,\n\t\tIssuedAt:   row.CreatedAt,\n\t}\n\tif err := s.publisher.Publish(ctx, \"coupon-issued\", evt); err != nil {\n\t\ts.logger.Warn(\"publish coupon-issued failed\",\n\t\t\t\"grant_id\", grantID,\n\t\t\t\"activity_id\", row.ActivityID,\n\t\t\t\"err\", err,\n\t\t)\n\t\ts.metrics.Counter(\"coupon_issued_publish_failed\").Inc()\n\t}\n}","highlight":[5,10,16],"note":"发布失败只 `Warn` 加一个计数器，没有重投：这是有意的取舍，不是遗漏，代价写在下面第 3 条。"}],"explain":["事件只在首次插入后发布，重放不再发。`marketing-service` 收到的 `coupon-issued` 数量会低于请求数，活动报表里「请求量」和「发券量」从此不是同一个数。","下游按 `grant_id` 去重，重复事件就是重复通知的根源；在源头减少事件，比在下游再加一张去重表便宜。","发布失败只记 `Warn` 和一个计数器，不回滚已落库的券：券已经发了，回滚只会让用户看到失败却实际持有券。代价是极端情况下事件丢失。","回滚只能摘应用：唯一索引与清理过的重复行不会随代码退回。旧代码插入不带 `request_id`，列上没有默认值时第一次领取就报 1364——回滚顺序是先放开列默认值，再退版本。","已经按新版本发出去的券不会因为回滚收回；`replayed` 字段消失后，调用方要能容忍字段缺失。"],"takeaway":"修复让事件变少，但回滚只退代码，退不掉索引、数据和已经发出去的券。","next":"按真实入口把这条链路点一遍，重点是确认网关重试这一路也被挡住。"}],"database":{"has_change":true,"headline":"coupon_grant 加唯一索引，先清重复再加约束","summary":"存量表 `coupon_grant` 此前没有任何唯一键，只有自增主键。发布前要删掉同一 `(user_id, activity_id, request_id)` 下的重复行、把历史空 `request_id` 回填成 `legacy-\u003cid\u003e`，再加 `uk_user_activity_request`。预发库 1.2 万行，脚本删除 37 行，备份表保留 7 天。","tables":[{"name":"coupon_grant","op":"ALTER","ddl":"ALTER TABLE coupon_grant\n\tADD UNIQUE KEY uk_user_activity_request (user_id, activity_id, request_id);","note":"唯一索引是幂等的唯一裁决者。列顺序必须是 `user_id, activity_id, request_id`：前两列是左前缀，按用户查历史发券记录时也能用上这个索引。"}],"steps":["在网关摘掉 `POST /api/coupon/grant` 的流量（或整体停写），避免清理期间产生新的重复行。","执行 `CREATE TABLE coupon_grant_dup_20261018 AS SELECT ...` 备份待删除的行，记录行数（预发 37 行）。","按备份表执行 `DELETE g FROM coupon_grant g JOIN coupon_grant_dup_20261018 d ON d.id = g.id`，同一幂等键只留 `MIN(id)`。","执行 `UPDATE coupon_grant SET request_id = CONCAT('legacy-', id) WHERE request_id = '' OR request_id IS NULL`，把历史空键回填成可索引的值。","执行 `ALTER TABLE coupon_grant ADD UNIQUE KEY uk_user_activity_request (user_id, activity_id, request_id)`，用 `SHOW INDEX FROM coupon_grant` 确认索引存在。","发布应用版本，恢复网关流量；盯 `coupon_issued_publish_failed` 计数器和 1062 相关日志。","对账 24 小时无误后 `DROP TABLE coupon_grant_dup_20261018`。"],"compatibility":"旧版本应用不认识 `request_id`，插入走列默认值；列若是 `NOT NULL DEFAULT ''`，第二条空键插入就撞唯一索引，1062 直接变成 500。所以加索引与发版本必须在同一个停写窗口内完成，预发整段（停写 + 迁移 + 发版）实测 8 分钟。回读依赖索引列，新旧版本不能长期共存。","rollback":"先 `ALTER TABLE coupon_grant DROP INDEX uk_user_activity_request`，再退应用版本；`request_id` 列保留，退版前先执行 `ALTER TABLE coupon_grant ALTER COLUMN request_id SET DEFAULT ''`，否则旧代码插入报 1364。备份表 `coupon_grant_dup_20261018` 保留 7 天，回滚时用它恢复被删的重复行；已经发出去的券无法收回。"},"tests":{"strategy":"单测锁 `Grant` 的返回值与表行数，集成测锁真实 MySQL 上的唯一索引与并发，人工验收锁网关重试这条真实入口。","cases":[{"name":"TestGrant_SameRequestID","type":"unit","file":"internal/coupon/grant_test.go","covers":"同一 `request_id` 连续调用两次：第二次走冲突回读","assert":"`Replayed` 从 false 变 true，两次 `grant_id` 相同，`coupon_grant` 只有 1 行"},{"name":"TestGrant_ConcurrentSameRequest","type":"integration","file":"internal/coupon/grant_test.go","covers":"20 个 goroutine 同 `request_id` 并发领取，连真实 MySQL","assert":"20 个返回值 `grant_id` 全相同，表里 1 行，没有一例 1062 冒泡成 error"},{"name":"TestGrant_DifferentRequest","type":"unit","file":"internal/coupon/grant_test.go","covers":"反向变体：同一用户同一活动换一个 `request_id`","assert":"落 2 行、2 个不同 `grant_id`，两次 `Replayed` 都是 false"},{"name":"网关重试手工验证","type":"manual","file":"网关访问日志","covers":"`POST /api/coupon/grant` 读超时后由网关重试一次","assert":"两条日志的 `X-Request-Id` 相同，响应 `grant_id` 相同，第二条 `replayed` 为 true"}],"commands":["go test ./internal/coupon/ -run TestGrant -count=1","go test ./internal/coupon/ -race -run TestGrant_ConcurrentSameRequest -count=5"],"gaps":["`migrations/20261018_coupon_grant_unique.sql` 没有自动化测试，清理语句只在预发库手工跑过；同一幂等键有 3 条以上重复、`request_id` 为 NULL 的组合都没有构造过用例。","`publishIssued` 的失败分支没有测试：MQ 不可用时只有 `Warn` 和计数器，事件丢失不会被任何断言发现。","handler 的两个 400 分支（缺失 `request_id`、超过 64 个字符）没有单测，只靠人工验收覆盖。","订单详情页的补领入口不在这个仓库，`request_id` 必填对老客户端是否兼容没有验证。"]},"verify":{"environment":"预发环境，`acme/order-service` 镜像由 `3f9c2ab` 构建；网关指向预发集群，`marketing-service` 共用预发 MQ。","preconditions":["预发库已执行 `migrations/20261018_coupon_grant_unique.sql`，`SHOW INDEX FROM coupon_grant` 能看到 `uk_user_activity_request`","活动 `20261018_autumn` 在预发可用，测试账号 9001 / 9002 在该活动下没有历史领取记录","可以直连预发网关重放请求，环境变量 `$GW` 指向网关地址"],"steps":[{"action":"用 `X-Request-Id: verify-0001` 和请求体 `{\"activity_id\":\"20261018_autumn\",\"request_id\":\"verify-0001\"}` 对 `POST /api/coupon/grant` 连打两次","expect":"两次都返回 200，`grant_id` 相同，第二次响应里 `replayed` 为 `true`，`status` 都是 `issued`","observe":"第二次响应体；再查 `SELECT * FROM coupon_grant WHERE user_id = 9001 AND request_id = 'verify-0001'`，应当只有 1 行","fail":"第二次若返回 500 且日志里有 `Error 1062`，先看 `IsDuplicateKey` 是否被外层 `%w` 包住，导致 `errors.As` 失配。"},{"action":"并发打同一个键：`for i in $(seq 1 10); do curl -s -X POST \"$GW/api/coupon/grant\" -H 'X-Request-Id: verify-0002' -H 'Content-Type: application/json' -d '{\"activity_id\":\"20261018_autumn\",\"request_id\":\"verify-0002\"}' \u0026 done; wait`","expect":"10 条响应全部 200，`grant_id` 只有一个取值，`coupon_grant` 只新增 1 行","observe":"把响应写进 `resp.txt` 后执行 `jq -r .grant_id resp.txt | sort -u | wc -l`，结果应为 1；再 `SELECT COUNT(*) FROM coupon_grant WHERE request_id = 'verify-0002'`","fail":"出现多个 `grant_id` 就直接 `SHOW INDEX FROM coupon_grant`；预发最常见的原因是迁移脚本只跑到 `DELETE`，`ALTER` 那行没执行。"},{"action":"去掉 `request_id` 与 `X-Request-Id`，请求体只留 `{\"activity_id\":\"20261018_autumn\"}`，再打一次 `POST /api/coupon/grant`","expect":"返回 400，响应体 `code` 为 `missing_request_id`，`coupon_grant` 不新增行","observe":"响应状态码与 `code` 字段；同时数一下该用户的行数，应当与上一步一致","fail":"若返回 200，说明请求没走 `handler.go` 的新入口（旧版本路由或内部直连），先看网关访问日志命中的是哪个 upstream。"},{"action":"到 `marketing-service` 的发券流水页，按第 1 步返回的 `grant_id` 搜索","expect":"只有 1 条 `coupon-issued` 消费记录，通知只发 1 次；重放那一次没有产生第二条流水","observe":"流水页按 `grant_id` 过滤后的记录条数，以及消费日志里该 `grant_id` 的出现次数","fail":"若流水有 2 条，先用 `grant_id` 对齐发布日志与 MQ 消费日志的时间戳，区分是重复投递还是 order-service 发了两次。"},{"action":"回滚演练：在预发库执行 `ALTER TABLE coupon_grant DROP INDEX uk_user_activity_request`，应用退到上一版镜像，再领一次券","expect":"领取仍然成功（此时可能落多行），接口不返回 500；恢复索引后同一 `request_id` 的重复请求重新被拦","observe":"退版后第一次领取的响应码；`SHOW INDEX FROM coupon_grant` 里索引已经消失","fail":"若退版后返回 1364 `Field 'request_id' doesn't have a default value`，先执行 `ALTER TABLE coupon_grant ALTER COLUMN request_id SET DEFAULT ''` 再重试。"}],"regression":["订单详情页的「补领」入口：老客户端不传 `request_id` 会拿到 400，回归时要按客户端版本确认。","`marketing-service` 的发券量报表：事件数量下降属于预期，口径变化要提前同步给运营。","活动库存扣减链路不受影响：扣减发生在消费端，不读 `coupon_grant`。"]},"glossary":[{"term":"幂等键","desc":"让同一次业务操作可以被安全重试的标识。这里用 `request_id`：重试复用同一个值，服务端据此判断「这次请求是否已经落库」。"},{"term":"唯一索引","desc":"数据库层的唯一性约束。`uk_user_activity_request` 作用在 `(user_id, activity_id, request_id)` 上，插入重复键时 MySQL 返回 1062，而不是写进第二行。"},{"term":"冲突回读","desc":"插入撞唯一索引后，按同一组键把已存在的行查出来，当成这次请求的成功结果返回，并标记 `replayed=true`。"},{"term":"1062","desc":"MySQL 的 `ER_DUP_ENTRY` 错误码。代码里由 `IsDuplicateKey` 翻译成 `ErrDuplicateKey`，业务层不直接依赖驱动类型。"},{"term":"领券","desc":"用户在某次营销活动里领取一张券，结果落到 `coupon_grant` 表。接口是 `POST /api/coupon/grant`。"},{"term":"活动 activity_id","desc":"营销活动的标识，例如 `20261018_autumn`。同一用户在同一活动下可以有多次请求，能不能领多张由活动规则决定，不由唯一索引决定。"},{"term":"coupon-issued","desc":"发券成功后投递到 MQ 的事件，`marketing-service` 消费后写发券流水并推送通知。只在首次落库时发一条。"}],"open_questions":["限领张数要不要在 order-service 前置拦截？唯一索引只挡同一个 `request_id`，客户端换新键连点仍能落多行，限领目前依赖 `marketing-service` 收到事件后的异步判断，存在窗口期。","`publishIssued` 失败只有 `Warn` 与计数器，没有 outbox 重投。是否把事件写进同库的 outbox 表，与 `coupon_grant` 在同一个事务里提交？","生产表的 `ALTER` 要占多长停写窗口没有数据：预发 1.2 万行整段 8 分钟，生产行数是预发的 40 倍，锁表时间还没有测。"]}</script>
+<script>
+(function(){
+"use strict";
+
+const DATA = JSON.parse(document.getElementById("mr-data").textContent);
+const META = DATA.meta || {};
+const PLATFORM_NAMES = { gitlab: "GitLab", github: "GitHub", gitee: "Gitee", bitbucket: "Bitbucket" };
+const PLATFORM_NAME = PLATFORM_NAMES[String(META.platform || "gitlab").toLowerCase()] || "代码托管平台";
+const MR_LABEL = META.mr_label || ((META.mr_iid === 0 || META.mr_iid === "" || META.mr_iid == null) ? "" : "!" + META.mr_iid);
+const MR_KEY = MR_LABEL ? ((META.project || "") + " " + MR_LABEL) : (META.project || "");
+const STORE_KEY = "mrw:v1:" + (META.project || "unknown") + "!" + (META.mr_iid || 0);
+
+/* ------------------------------------------------------------------ utils */
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function pad(n){ return String(n).padStart(2,"0"); }
+function num(n){ return (n == null ? 0 : n).toLocaleString("en-US"); }
+function inline(s){
+  // `code` -> <code>, **bold** -> <b>; everything else escaped.
+  return esc(s).replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>");
+}
+function store(key, val){
+  try{
+    if (val === undefined) return JSON.parse(localStorage.getItem(key) || "null");
+    localStorage.setItem(key, JSON.stringify(val));
+  }catch(e){ return null; }
+}
+
+const KEYWORDS = {
+  go:"break case chan const continue default defer else fallthrough for func go goto if import interface map package range return select struct switch type var nil true false string int int32 int64 bool error make append len cap new panic any",
+  sql:"select from where join left right inner outer on and or not null insert into values update set delete create table alter add column index drop primary key foreign references default exists group by order limit",
+  js:"const let var function return if else for while class new async await import export from default try catch throw typeof null true false this",
+  yaml:"true false null",
+  sh:"if then else fi for do done case esac export echo cd sudo curl set local"
+};
+const KEYWORD_SETS = {};
+Object.keys(KEYWORDS).forEach(function(k){ KEYWORD_SETS[k] = new Set(KEYWORDS[k].split(/\s+/)); });
+
+function normLang(l){
+  l = String(l || "").toLowerCase();
+  if (l === "golang") return "go";
+  if (l === "shell" || l === "bash" || l === "zsh") return "sh";
+  if (l === "yml") return "yaml";
+  if (l === "javascript" || l === "ts" || l === "typescript") return "js";
+  return l || "text";
+}
+
+function highlight(src, lang){
+  lang = normLang(lang);
+  const kw = KEYWORD_SETS[lang];
+  const re = /(\/\*[\s\S]*?\*\/|\/\/[^\n]*|#[^\n]*|--[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_$][A-Za-z0-9_$]*)/g;
+  let out = "", last = 0, m;
+  while ((m = re.exec(src))){
+    out += esc(src.slice(last, m.index));
+    if (m[1]) out += '<span class="tok-c">' + esc(m[1]) + '</span>';
+    else if (m[2]) out += '<span class="tok-s">' + esc(m[2]) + '</span>';
+    else if (m[3]) out += '<span class="tok-n">' + esc(m[3]) + '</span>';
+    else {
+      const w = m[4];
+      const lw = w.toLowerCase();
+      if (kw && kw.has(lw)) out += '<span class="tok-k">' + esc(w) + '</span>';
+      else if (/^[A-Z]/.test(w)) out += '<span class="tok-t">' + esc(w) + '</span>';
+      else if (lang === "go" && /^[a-z]/.test(w) && src[re.lastIndex] === "(") out += '<span class="tok-f">' + esc(w) + '</span>';
+      else out += esc(w);
+    }
+    last = re.lastIndex;
+  }
+  return out + esc(src.slice(last));
+}
+
+function snippetBlock(sn, opts){
+  opts = opts || {};
+  const lang = normLang(sn.lang);
+  const code = String(sn.code || "").replace(/\s+$/, "");
+  const lines = code.split("\n");
+  const hl = new Set(sn.highlight || []);
+  const rows = lines.map(function(line, i){
+    const n = i + 1;
+    return '<div class="cl' + (hl.has(n) ? " hl" : "") + '"><span class="ln">' + n +
+      '</span><span class="lc">' + (highlight(line, lang) || " ") + "</span></div>";
+  }).join("");
+  const id = "c" + (opts.seq || Math.random().toString(36).slice(2, 8));
+  return '<div class="snippet">' +
+    '<div class="code"><div class="code-head">' +
+      '<span>' + esc(sn.label || "snippet") + '</span>' +
+      '<span class="lang">' + esc(lang) + '</span>' +
+      '<button data-copy="' + id + '">复制</button>' +
+    '</div><div class="code-body" id="' + id + '" data-raw="' + esc(code) + '">' + rows + "</div></div>" +
+    (sn.note ? '<p class="note">' + inline(sn.note) + "</p>" : "") +
+  "</div>";
+}
+
+function diffBlock(d){
+  const code = String(d.patch || "").replace(/\s+$/, "");
+  const rows = code.split("\n").map(function(line){
+    let cls = "ctx", pre = " ";
+    if (line.startsWith("@@")) { cls = "hunk"; pre = ""; }
+    else if (line.startsWith("+++") || line.startsWith("---")) { cls = "meta"; pre = ""; }
+    else if (line.startsWith("+")) { cls = "add"; pre = "+"; }
+    else if (line.startsWith("-")) { cls = "del"; pre = "-"; }
+    const body = (cls === "add" || cls === "del") ? line.slice(1) : line;
+    return '<div class="dl ' + cls + '"><span class="pre">' + esc(pre) + "</span><span>" + highlight(body, d.lang) + "</span></div>";
+  }).join("");
+  return '<div class="snippet"><div class="code"><div class="code-head">' +
+    '<span>' + esc(d.label || "diff") + '</span><span class="lang">diff</span>' +
+    '</div><div class="code-body">' + rows + "</div></div></div>";
+}
+
+/* ------------------------------------------------------------------ chapters */
+const chapters = [];
+function addChapter(def){ chapters.push(def); }
+
+function renderOverview(){
+  const o = DATA.overview || {};
+  const p = o.problem || {};
+  const risk = o.risk || { level: "低", items: [] };
+  const firstStep = (DATA.steps && DATA.steps[0]) ? DATA.steps[0].id : "";
+  const evidence = (p.evidence || []).map(function(e){
+    return '<li>' + inline(e.text) + (e.ref ? ' <span class="ref">— ' + esc(e.ref) + "</span>" : "") + "</li>";
+  }).join("");
+  const solution = (o.solution || []).map(function(s){ return "<li>" + inline(s) + "</li>"; }).join("");
+  const impact = (o.impact || []).map(function(it){
+    const lvl = it.level || "medium";
+    return '<div class="impact-item"><span class="lvl ' + esc(lvl) + '"></span><div><b>' + inline(it.area) +
+      "</b><p>" + inline(it.detail) + "</p></div></div>";
+  }).join("");
+  const riskItems = (risk.items || []).map(function(x){ return "<li>" + inline(x) + "</li>"; }).join("");
+  const stateLabel = META.state === "merged" ? "已合并" : META.state === "opened" ? "进行中" : (META.state || "");
+
+  return '' +
+  '<section class="chapter" data-ch="overview">' +
+    '<div class="hero">' +
+      '<div class="badges">' +
+        '<span class="badge">' + esc(MR_KEY) + "</span>" +
+        '<span class="badge state">' + esc(stateLabel) + "</span>" +
+        (META.tags || []).map(function(t){ return '<span class="badge">' + esc(t) + "</span>"; }).join("") +
+      "</div>" +
+      "<h1>" + inline(META.title) + "</h1>" +
+      '<p class="one-liner">' + inline(o.one_liner) + "</p>" +
+      '<div class="hero-meta">' +
+        "<span>" + esc(META.author) + "</span><span class='dot'></span>" +
+        "<span>" + esc(META.source_branch) + " → " + esc(META.target_branch) + "</span><span class='dot'></span>" +
+        "<span>" + esc((META.merged_at || META.created_at || "").slice(0, 10)) + "</span><span class='dot'></span>" +
+        "<span>" + num((META.stats || {}).files) + " 文件 · <span style='color:var(--ok)'>+" + num((META.stats || {}).additions) +
+        "</span> <span style='color:var(--danger)'>-" + num((META.stats || {}).deletions) + "</span></span>" +
+      "</div>" +
+      '<div class="hero-cta"><button class="btn" data-goto="' + esc(firstStep) + '">开始走读 →</button>' +
+        '<span class="hint">' + (o.reading_time || 10) + " 分钟 · 共 " + chapters.length + " 节 · 键盘 ← → 可切换</span></div>" +
+    "</div>" +
+    '<div class="grid-2">' +
+      '<article class="card"><h3><span class="ico">01</span>' + inline(p.headline || "问题是什么") + "</h3>" +
+        "<p>" + inline(p.body) + "</p>" +
+        (evidence ? '<ul class="evidence">' + evidence + "</ul>" : "") +
+      "</article>" +
+      '<article class="card"><h3><span class="ico">02</span>这次怎么解</h3><ol class="steps-list">' + solution + "</ol></article>" +
+    "</div>" +
+    '<div class="section-title"><h3>影响面</h3><span>WHAT CHANGES</span></div>' +
+    '<div class="impact">' + impact + "</div>" +
+    '<div class="section-title"><h3>风险与注意</h3><span>RISK</span></div>' +
+    '<div class="risk-box"><div class="risk-level">风险 · ' + esc(risk.level) + "</div><ul>" + riskItems + "</ul></div>" +
+  "</section>";
+}
+
+function renderFeatures(){
+  const items = (DATA.features || []).map(function(f){
+    const st = f.status || "changed";
+    const label = st === "fixed" ? "已修复" : st === "unchanged" ? "不变" : "已改动";
+    return '<div class="feature" ' + (f.step ? 'data-step="' + esc(f.step) + '"' : "") + ">" +
+      '<span class="status ' + esc(st) + '">' + label + "</span>" +
+      "<div><h4>" + inline(f.title) + "</h4><p>" + inline(f.detail) + "</p></div>" +
+      '<span class="go">' + (f.step ? "去看 →" : "") + "</span></div>";
+  }).join("");
+  return '<section class="chapter" data-ch="features">' + head("FEATURE MAP", "改动影响到的功能", "先建立功能视角：这次动到的用户可见行为、内部契约与开关。") +
+    '<div class="feature-grid">' + items + "</div></section>";
+}
+
+function renderFiles(){
+  const changed = (DATA.files || []).filter(function(f){ return f.change !== "context"; });
+  const context = (DATA.files || []).filter(function(f){ return f.change === "context"; });
+  const roleLabel = {core:"核心", test:"测试", context:"只读", config:"配置", migration:"迁移", doc:"文档", generated:"生成"};
+  function row(f){
+    const role = f.role || "core";
+    const d = f.change === "context" ? '<span style="color:var(--dim)">—</span>' :
+      f.change === "deleted" ? '<span class="d">删除</span>' :
+      '<span class="a">+' + num(f.additions) + "</span> <span class=\"d\">-" + num(f.deletions) + "</span>";
+    return "<tr " + (f.step ? 'data-step="' + esc(f.step) + '"' : "") + ">" +
+      '<td><div class="path">' + esc(f.path).replace(/\//g, "/<wbr>") + "</div></td>" +
+      '<td><span class="role ' + esc(role) + '">' + esc(roleLabel[role] || role) + "</span></td>" +
+      '<td class="diff-num">' + d + "</td>" +
+      '<td class="file-sum">' + inline(f.summary) + "</td></tr>";
+  }
+  const changedRows = changed.map(row).join("");
+  const contextRows = context.length ? context.map(row).join("") : "";
+  return '<section class="chapter" data-ch="files">' + head("FILE MAP", "涉及哪些文件", "按“改动 / 只读关联”两组看。点击任意一行可跳到讲解它的那一步。") +
+    '<div class="files-tools"><input id="fileFilter" placeholder="过滤路径或说明…" autocomplete="off"></div>' +
+    '<div class="table-wrap"><table><thead><tr><th>文件</th><th>角色</th><th>变更</th><th>说明</th></tr></thead><tbody id="fileBody">' +
+      changedRows + contextRows +
+    "</tbody></table></div>" +
+    '<p class="legend">核心 = 主要逻辑 · 测试 = 测试 · 只读 = 未改动，但读懂本次变更必须看的文件</p>' +
+  "</section>";
+}
+
+function renderChain(){
+  const c = DATA.chain || {};
+  const nodes = c.nodes || [];
+  const edges = c.edges || [];
+  const html = nodes.map(function(n, i){
+    let edgeLabel = "";
+    if (i > 0){
+      const e = edges.filter(function(x){ return x.to === n.id; })[0];
+      if (e) edgeLabel = '<div class="chain-edge">' + esc(e.label || "") + "</div>";
+    }
+    const files = (n.files || []).map(function(f){ return "<code>" + esc(f) + "</code>"; }).join("");
+    return edgeLabel +
+      '<div class="chain-node">' +
+        '<div class="lane">' + esc(n.lane || "") + "</div>" +
+        '<div class="spine"><span class="dot"></span></div>' +
+        '<div class="node" ' + (n.step ? 'data-step="' + esc(n.step) + '"' : "") + ">" +
+          "<h4>" + esc(n.label) + "</h4><p>" + inline(n.detail) + "</p>" +
+          (files ? '<div class="files">' + files + "</div>" : "") +
+        "</div>" +
+      "</div>";
+  }).join("");
+  return '<section class="chapter" data-ch="chain">' + head("REQUEST PATH", "开发链路：一次操作是怎么走到代码里的",
+    c.summary || "从上往下读，每一跳都标出它对应的代码位置；点节点可以直接跳到那一步。") +
+    '<div class="chain" style="margin-top:26px">' + html + "</div></section>";
+}
+
+function renderDesign(){
+  const d = DATA.design || {};
+  const items = (d.decisions || []).map(function(x){
+    return '<div class="decision"><h4>' + inline(x.question) + "</h4>" +
+      '<div class="row"><span class="k">选择</span><span class="v">' + inline(x.choice) + "</span></div>" +
+      '<div class="row"><span class="k">理由</span><span class="v why">' + inline(x.why) + "</span></div>" +
+      (x.cost ? '<div class="row"><span class="k">代价</span><span class="v why">' + inline(x.cost) + "</span></div>" : "") +
+      "</div>";
+  }).join("");
+  return '<section class="chapter" data-ch="design">' + head("DESIGN NOTES", "改动的想法：为什么是这个方案",
+    d.summary || "把 MR 里的取舍拆开看：每个选择背后否掉了什么、留下了什么代价。") +
+    items + "</section>";
+}
+
+function renderStep(step, index){
+  const snippets = (step.snippets || []).map(function(sn, i){ return snippetBlock(sn, {seq: index + "-" + i}); }).join("");
+  const diff = step.diff ? diffBlock(step.diff) : "";
+  const explain = (step.explain || []).map(function(x){ return "<li>" + inline(x) + "</li>"; }).join("");
+  const gh = META.mr_url ? META.mr_url : "";
+  return '<section class="chapter" data-ch="' + esc(step.id) + '">' +
+    '<div class="step-head"><div class="step-num">' + pad(index + 1) + "</div><div>" +
+      '<p class="eyebrow">STEP ' + pad(index + 1) + " / " + pad((DATA.steps || []).length) + " · " + esc(step.kicker || "") + "</p>" +
+      "<h2>" + inline(step.title) + "</h2>" +
+      '<div class="filebar">' + (step.file ? '<span class="f">' + esc(step.file) + "</span>" : "") +
+        (step.lines ? '<span class="l">' + esc(step.lines) + "</span>" : "") +
+        (gh && step.file ? '<a href="' + esc(gh) + '" target="_blank" rel="noopener noreferrer">在 MR 中查看 ↗</a>' : "") +
+      "</div>" +
+    "</div></div>" +
+    (step.goal ? '<div class="callout goal"><span class="k">这一步</span><p>' + inline(step.goal) + "</p></div>" : "") +
+    (step.why_first ? '<div class="callout why"><span class="k">为什么先看这里</span><p>' + inline(step.why_first) + "</p></div>" : "") +
+    snippets + diff +
+    (explain ? '<ul class="explain">' + explain + "</ul>" : "") +
+    (step.takeaway ? '<div class="takeaway"><b>带走这一条</b>' + inline(step.takeaway) + "</div>" : "") +
+    (step.next ? '<div class="next-hint">下一步 <b>→</b> <span>' + inline(step.next) + "</span></div>" : "") +
+  "</section>";
+}
+
+function renderDatabase(){
+  const d = DATA.database || {};
+  const tables = (d.tables || []).map(function(t){
+    return '<div class="db-table"><div class="top"><span class="op">' + esc(t.op || "DDL") + '</span><span class="name">' + esc(t.name) + "</span></div>" +
+      (t.ddl ? snippetBlock({label: t.name, lang: "sql", code: t.ddl}) : "") +
+      (t.note ? "<p>" + inline(t.note) + "</p>" : "") + "</div>";
+  }).join("");
+  const steps = (d.steps || []).map(function(s){ return "<li>" + inline(s) + "</li>"; }).join("");
+  return '<section class="chapter" data-ch="database">' + head("DATA LAYER", "数据库与数据面改造",
+    d.headline || "看这次变更是否动到表结构、存量数据与回滚路径。") +
+    '<div class="banner ' + (d.has_change ? "" : "none") + '"><span class="mark">' + (d.has_change ? "有 DDL" : "无 DDL") + "</span>" +
+      "<div><h3>" + inline(d.headline || "") + "</h3><p>" + inline(d.summary) + "</p></div></div>" +
+    tables +
+    (steps ? '<div class="kv"><div class="row"><span class="k">数据迁移</span><div class="v"><ol style="margin:0;padding-left:18px">' + steps + "</ol></div></div>" : "") +
+    (d.compatibility ? '<div class="kv"><div class="row"><span class="k">兼容性</span><div class="v">' + inline(d.compatibility) + "</div></div>" : "") +
+    (d.rollback ? '<div class="row"><span class="k">回滚</span><div class="v">' + inline(d.rollback) + "</div></div>" : "") +
+    "</div></section>";
+}
+
+function renderTests(){
+  const t = DATA.tests || {};
+  const cases = (t.cases || []).map(function(c){
+    return '<div class="test-case"><div class="top"><span class="name">' + esc(c.name) + "</span>" +
+      '<span class="type ' + esc(c.type || "unit") + '">' + esc(c.type || "unit") + "</span>" +
+      (c.file ? '<span class="path" style="font-size:11px;color:var(--dim)">' + esc(c.file) + "</span>" : "") + "</div>" +
+      '<p>覆盖：' + inline(c.covers) + "</p>" +
+      (c.assert ? '<p class="assert">断言：' + inline(c.assert) + "</p>" : "") + "</div>";
+  }).join("");
+  const cmds = (t.commands || []).length ? snippetBlock({label: "运行测试", lang: "sh", code: (t.commands || []).join("\n")}) : "";
+  const gaps = (t.gaps || []).map(function(g){ return "<li>" + inline(g) + "</li>"; }).join("");
+  return '<section class="chapter" data-ch="tests">' + head("TEST DESIGN", "测试是怎么设计的",
+    t.strategy || "单测锁行为、集成测锁链路、人工验收锁真实环境。") +
+    '<div class="test-cases">' + cases + "</div>" + cmds +
+    (gaps ? '<div class="gaps"><b>已知缺口</b><ul>' + gaps + "</ul></div>" : "") +
+  "</section>";
+}
+
+function renderVerify(){
+  const v = DATA.verify || {};
+  const pre = (v.preconditions || []).map(function(p){ return "<span>" + inline(p) + "</span>"; }).join("");
+  const steps = (v.steps || []).map(function(s, i){
+    return '<label class="check"><input type="checkbox" data-check="v' + i + '"><div>' +
+      '<div class="ci"><span class="idx">' + pad(i + 1) + "</span>" + inline(s.action) + "</div>" +
+      '<div class="row"><span class="k">预期</span><span class="expect">' + inline(s.expect) + "</span></div>" +
+      (s.observe ? '<div class="row"><span class="k">观察点</span><span class="observe">' + inline(s.observe) + "</span></div>" : "") +
+      (s.fail ? '<div class="row"><span class="k">不通时</span><span class="fail">' + inline(s.fail) + "</span></div>" : "") +
+      "</div></label>";
+  }).join("");
+  const reg = (v.regression || []).map(function(r){ return "<li>" + inline(r) + "</li>"; }).join("");
+  return '<section class="chapter" data-ch="verify">' + head("HUMAN VERIFY", "端到端人工验收",
+    "按顺序点一遍，勾选会自动保存在本机。环境：" + (v.environment || "—")) +
+    (pre ? '<div class="pre">' + pre + "</div>" : "") +
+    steps +
+    (reg ? '<div class="regression"><b>回归面</b><ul>' + reg + "</ul></div>" : "") +
+    '<p class="hint" style="margin-top:16px">勾选状态保存在浏览器 localStorage，换设备不同步。</p>' +
+  "</section>";
+}
+
+function renderAppendix(){
+  const gloss = (DATA.glossary || []).map(function(g){
+    return '<div class="term"><b>' + esc(g.term) + "</b><p>" + inline(g.desc) + "</p></div>";
+  }).join("");
+  const q = (DATA.open_questions || []).map(function(x){ return "<li>" + inline(x) + "</li>"; }).join("");
+  return '<section class="chapter" data-ch="appendix">' + head("APPENDIX", "名词表与待确认项",
+    "读完还卡住的词、以及这次没有结论的问题。") +
+    '<div class="glossary">' + gloss + "</div>" +
+    (q ? '<div class="questions"><div class="section-title"><h3>待确认</h3><span>OPEN</span></div><ol>' + q + "</ol></div>" : "") +
+  "</section>";
+}
+
+function head(kicker, title, sub){
+  return '<header class="ch-head"><p class="eyebrow">' + esc(kicker) + "</p><h2>" + inline(title) + "</h2>" +
+    (sub ? '<p class="ch-sub">' + inline(sub) + "</p>" : "") + "</header>";
+}
+
+/* ------------------------------------------------------------------ build nav */
+addChapter({id:"overview", group:"先看全貌", label:"概览", render:renderOverview});
+addChapter({id:"features", group:"先看全貌", label:"功能影响面", render:renderFeatures});
+addChapter({id:"files", group:"先看全貌", label:"文件地图", render:renderFiles});
+addChapter({id:"chain", group:"先看全貌", label:"开发链路", render:renderChain});
+addChapter({id:"design", group:"先看全貌", label:"设计取舍", render:renderDesign});
+(DATA.steps || []).forEach(function(step, i){
+  addChapter({id:step.id, group:"逐步走读", label:step.nav || step.title, short:"步骤 " + pad(i + 1), render:function(){ return renderStep(step, i); }});
+});
+addChapter({id:"database", group:"收尾", label:"数据库改造", render:renderDatabase});
+addChapter({id:"tests", group:"收尾", label:"测试设计", render:renderTests});
+addChapter({id:"verify", group:"收尾", label:"人工验收", render:renderVerify});
+if ((DATA.glossary || []).length || (DATA.open_questions || []).length){
+  addChapter({id:"appendix", group:"收尾", label:"名词与待确认", render:renderAppendix});
+}
+
+/* ------------------------------------------------------------------ render */
+const stage = document.getElementById("stage");
+const nav = document.getElementById("nav");
+const main = document.querySelector(".main");
+
+let current = 0;
+const seen = new Set(store(STORE_KEY + ":seen") || []);
+
+stage.innerHTML = chapters.map(function(ch){
+  return ch.render();
+}).join("");
+
+// Inject chapter flags after render (render functions run once, in order).
+Array.prototype.forEach.call(stage.querySelectorAll(".chapter"), function(el, i){
+  el.setAttribute("data-index", i);
+  el.hidden = i !== 0;
+});
+
+function navItem(ch, i){
+  return '<button data-goto="' + esc(ch.id) + '" data-nav="' + i + '" class="' + (seen.has(ch.id) ? "seen" : "") + '">' +
+    "<i>" + pad(i + 1) + "</i><span>" + esc(ch.label) + '</span><span class="tick">✓</span></button>';
+}
+nav.innerHTML = (function(){
+  let out = "", group = null;
+  chapters.forEach(function(ch, i){
+    if (ch.group !== group){
+      if (group !== null) out += "</div>";
+      group = ch.group;
+      out += '<div class="nav-group"><span>' + esc(group) + "</span>";
+    }
+    out += navItem(ch, i);
+  });
+  return out + "</div>";
+})();
+
+const topMeta = document.getElementById("topMeta");
+topMeta.innerHTML =
+  '<span class="chip"><b>' + esc(MR_KEY) + "</b></span>" +
+  '<span class="chip">' + esc((META.author || "").split(" (")[0]) + "</span>" +
+  '<span class="chip">' + num((META.stats || {}).files) + " files</span>" +
+  '<span class="chip"><span style="color:var(--ok)">+' + num((META.stats || {}).additions) + '</span><span style="color:var(--danger)"> −' + num((META.stats || {}).deletions) + "</span></span>";
+
+document.getElementById("railProject").textContent = MR_KEY;
+document.getElementById("railTitle").textContent = META.title || "";
+document.getElementById("railStats").innerHTML =
+  '<span><b>' + num((META.stats || {}).files) + "</b> 文件</span>" +
+  '<span class="add">+' + num((META.stats || {}).additions) + "</span>" +
+  '<span class="del">−' + num((META.stats || {}).deletions) + "</span>" +
+  '<span><b>' + num((META.stats || {}).commits) + "</b> commit</span>";
+document.getElementById("totalCount").textContent = chapters.length;
+const mrLink = document.getElementById("mrLink");
+if (META.mr_url) {
+  mrLink.href = META.mr_url;
+  mrLink.textContent = "在 " + PLATFORM_NAME + " 打开 ↗";
+} else {
+  mrLink.style.display = "none";
+}
+document.title = (MR_KEY || "MR") + " · " + (META.title || "Walkthrough");
+
+/* ------------------------------------------------------------------ navigation */
+const ringFg = document.getElementById("ringFg");
+const circumference = 119.4;
+
+function paint(){
+  const percent = Math.round((seen.size / chapters.length) * 100);
+  ringFg.setAttribute("stroke-dashoffset", String(circumference * (1 - percent / 100)));
+  document.getElementById("ringLabel").textContent = percent + "%";
+  document.getElementById("readCount").textContent = seen.size;
+  document.querySelectorAll("[data-nav]").forEach(function(btn){
+    const i = Number(btn.getAttribute("data-nav"));
+    btn.classList.toggle("current", i === current);
+    btn.classList.toggle("seen", seen.has(chapters[i].id));
+  });
+  const ch = chapters[current];
+  document.getElementById("pagerLabel").textContent = pad(current + 1) + " / " + pad(chapters.length) + "  ·  " + (ch.short || ch.label);
+  document.getElementById("prevBtn").disabled = current === 0;
+  document.getElementById("nextBtn").disabled = current === chapters.length - 1;
+  document.getElementById("progress").firstElementChild.style.width =
+    (((current + 1) / chapters.length) * 100) + "%";
+}
+
+function go(index, opts){
+  opts = opts || {};
+  if (index < 0 || index >= chapters.length) return;
+  const prev = current;
+  current = index;
+  const ch = chapters[current];
+  const els = stage.querySelectorAll(".chapter");
+  els.forEach(function(el, i){
+    if (i === index){
+      el.hidden = false;
+      el.classList.remove("chapter");
+      void el.offsetWidth;
+      el.classList.add("chapter");
+    } else {
+      el.hidden = true;
+    }
+  });
+  seen.add(ch.id);
+  store(STORE_KEY + ":seen", Array.from(seen));
+  store(STORE_KEY + ":pos", index);
+  if (!opts.silent){
+    try { history.replaceState(null, "", "#" + ch.id); } catch(e){}
+  }
+  window.scrollTo({top:0, behavior: opts.instant ? "auto" : "smooth"});
+  document.body.classList.remove("nav-open");
+  paint();
+}
+
+document.addEventListener("click", function(e){
+  const goto = e.target.closest("[data-goto]");
+  if (goto){
+    const id = goto.getAttribute("data-goto");
+    const idx = chapters.findIndex(function(c){ return c.id === id; });
+    if (idx >= 0) go(idx);
+    return;
+  }
+  const step = e.target.closest("[data-step]");
+  if (step){
+    const id = step.getAttribute("data-step");
+    const idx = chapters.findIndex(function(c){ return c.id === id; });
+    if (idx >= 0) go(idx);
+    return;
+  }
+  const navBtn = e.target.closest("[data-nav]");
+  if (navBtn){ go(Number(navBtn.getAttribute("data-nav"))); return; }
+  const copy = e.target.closest("[data-copy]");
+  if (copy){
+    const el = document.getElementById(copy.getAttribute("data-copy"));
+    if (!el) return;
+    const raw = el.getAttribute("data-raw") || "";
+    const done = function(){
+      const old = copy.textContent;
+      copy.textContent = "已复制";
+      setTimeout(function(){ copy.textContent = old; }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(raw).then(done, done);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = raw; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch(err){}
+      document.body.removeChild(ta); done();
+    }
+  }
+});
+
+document.getElementById("prevBtn").addEventListener("click", function(){ go(current - 1); });
+document.getElementById("nextBtn").addEventListener("click", function(){ go(current + 1); });
+document.getElementById("menuBtn").addEventListener("click", function(){ document.body.classList.toggle("nav-open"); });
+
+document.addEventListener("keydown", function(e){
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea" || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "ArrowRight" || e.key === "j"){ e.preventDefault(); go(current + 1); }
+  else if (e.key === "ArrowLeft" || e.key === "k"){ e.preventDefault(); go(current - 1); }
+  else if (e.key === "Home"){ e.preventDefault(); go(0); }
+  else if (e.key === "End"){ e.preventDefault(); go(chapters.length - 1); }
+  else if (e.key === "f" || e.key === "F"){ document.body.classList.toggle("focus-mode"); }
+});
+
+/* ------------------------------------------------------------------ checks */
+const savedChecks = store(STORE_KEY + ":checks") || {};
+document.querySelectorAll("[data-check]").forEach(function(input){
+  const key = input.getAttribute("data-check");
+  if (savedChecks[key]) input.checked = true;
+  input.addEventListener("change", function(){
+    const now = store(STORE_KEY + ":checks") || {};
+    now[key] = input.checked;
+    store(STORE_KEY + ":checks", now);
+  });
+});
+
+/* ------------------------------------------------------------------ file filter */
+const filter = document.getElementById("fileFilter");
+if (filter){
+  filter.addEventListener("input", function(){
+    const q = filter.value.trim().toLowerCase();
+    document.querySelectorAll("#fileBody tr").forEach(function(tr){
+      tr.style.display = !q || tr.textContent.toLowerCase().indexOf(q) >= 0 ? "" : "none";
+    });
+  });
+}
+
+/* ------------------------------------------------------------------ boot */
+const hash = decodeURIComponent(location.hash.replace(/^#/, ""));
+const storedPos = Number(store(STORE_KEY + ":pos"));
+let start = 0;
+if (hash){
+  const idx = chapters.findIndex(function(c){ return c.id === hash; });
+  if (idx >= 0) start = idx;
+} else if (!isNaN(storedPos) && storedPos > 0 && storedPos < chapters.length){
+  start = storedPos;
+}
+go(start, {silent:true, instant:true});
+})();
+</script>
+</body>
+</html>

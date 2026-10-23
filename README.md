@@ -1,5 +1,7 @@
 # zenkilan-skills
 
+[![tests](https://github.com/OuterCloud/zenkilan-skills/actions/workflows/test.yml/badge.svg)](https://github.com/OuterCloud/zenkilan-skills/actions/workflows/test.yml)
+
 个人沉淀的 AI 编码 Agent 自定义 Skills 合集。适用于 Kiro CLI、Claude Code、Cursor、Windsurf、Aider 等支持自定义指令的工具。
 
 ## Skills
@@ -12,6 +14,7 @@
 | [feishu-project-collab](./skills/feishu-project-collab/) | 飞书项目（Meego）协作：查询与流转研发工作项，缺陷发现 → 处理 → 修复回填 → 流转解决 |
 | [generate-agents-md](./skills/generate-agents-md/) | 为 git 项目生成或更新 AGENTS.md（面向 AI 编码 agent 的项目说明） |
 | [sync-mr](./skills/sync-mr/) | 代码变更后的标准 MR 同步流程：更新测试文档、新增 commit + push（不 amend、不 force）、更新 MR 描述 |
+| [mr-walkthrough](./skills/mr-walkthrough/) | MR/PR 走读：读透 GitLab / GitHub / Gitee / Bitbucket 的 MR/PR（也支持任意 diff 链接与本地分支对比），生成单文件离线 HTML——功能影响面、文件地图、端到端链路、设计取舍、按依赖排序的代码步骤、数据库改造、测试设计与人工验收 |
 | [pptx-gen](./skills/pptx-gen/) | 基于模板生成专业 PPT：分析模板结构、规划内容映射、自动填充生成 |
 
 ## 一键安装
@@ -60,6 +63,7 @@ ln -s $(pwd)/skills/feishu-chat-collab ~/.kiro/skills/feishu-chat-collab
 ln -s $(pwd)/skills/feishu-project-collab ~/.kiro/skills/feishu-project-collab
 ln -s $(pwd)/skills/generate-agents-md ~/.kiro/skills/generate-agents-md
 ln -s $(pwd)/skills/sync-mr ~/.kiro/skills/sync-mr
+ln -s $(pwd)/skills/mr-walkthrough ~/.kiro/skills/mr-walkthrough
 ln -s $(pwd)/skills/pptx-gen ~/.kiro/skills/pptx-gen
 ```
 
@@ -67,12 +71,14 @@ ln -s $(pwd)/skills/pptx-gen ~/.kiro/skills/pptx-gen
 
 ```bash
 mkdir -p .cursor/rules
-for skill in web-probe generate-agents-md sync-mr feishu-doc-collab feishu-chat-collab feishu-project-collab pptx-gen; do
+for skill in web-probe generate-agents-md sync-mr mr-walkthrough feishu-doc-collab feishu-chat-collab feishu-project-collab pptx-gen; do
   sed '1,/^---$/{ /^---$/!d; }' skills/$skill/SKILL.md | \
     sed '1s/^---$/---\ndescription: "'$skill'"\nglobs:\nalwaysApply: false\n---/' \
     > .cursor/rules/$skill.mdc
 done
 ```
+
+> 带脚本的 skill（`mr-walkthrough`、`web-probe`、`pptx-gen`）只有 `.mdc` / 斜杠命令不够用：脚本目录要按 SKILL.md 开头写的路径另外放好（例如软链到 `~/.kiro/skills/<skill>`），否则 agent 读得到流程、调不到工具。
 
 ### Windsurf
 
@@ -101,8 +107,9 @@ read:
 | feishu-project-collab | 飞书项目（Meego）MCP Token（[配置方式](./skills/feishu-project-collab/README.md)） |
 | generate-agents-md | 无 |
 | sync-mr | `glab` CLI（GitLab MR 操作） |
+| mr-walkthrough | Python 3（仅标准库）+ `git`；凭证按平台读 `GITLAB_TOKEN` / `GITHUB_TOKEN` / `GITEE_TOKEN` / `BITBUCKET_TOKEN`，或复用 `glab` / `gh` 登录态；也支持无 API 的 `.diff` 链接与本地两分支对比 |
 | pptx-gen | Python 3 + `lxml` + `PyMuPDF`；Keynote（macOS）或 LibreOffice（视觉 QA）；Node.js + PptxGenJS 仅用于用户明确无模板时的可选自由设计回退 |
 
 ## 许可
 
-MIT — 随便用，不需要署名。
+MIT，见 [LICENSE](./LICENSE)。
