@@ -1,6 +1,6 @@
 ---
 name: mr-walkthrough
-version: 1.0.0
+version: 1.1.0
 description: "把一个 MR/PR 读透并生成单文件、离线可看的沉浸式 HTML 走读页：功能影响面、文件地图、端到端开发链路、设计取舍、按依赖顺序的代码步骤、数据库改造、测试设计、人工验收步骤。支持 GitLab、GitHub、Gitee、Bitbucket、任意 .diff/.patch 链接和本地分支对比。用户说\"读懂这个 MR\"\"讲解这个 MR\"\"MR 走读\"\"PR 走读\"\"把 MR 做成网页\"\"代码变更走读\"\"MR walkthrough\"时使用。"
 metadata:
   requires:
@@ -43,8 +43,12 @@ metadata:
 ### Phase 1 取数
 
 ```bash
-# 本 skill 所在目录；Claude Code 一般是 ~/.claude/skills/mr-walkthrough
-SKILL="$HOME/.kiro/skills/mr-walkthrough"
+# SKILL = 本文件所在目录，宿主不同路径不同：
+#   ~/.agents/skills/mr-walkthrough    Codex、DeepSeek Harness（用户级，通用）
+#   ~/.codex/skills/mr-walkthrough     Codex 专属
+#   ~/.kiro/skills/mr-walkthrough      Kiro
+#   ~/.claude/skills/mr-walkthrough    Claude Code
+SKILL="$HOME/.agents/skills/mr-walkthrough"
 WORK=.mr-walkthrough/acme-order-service-128   # 不传 --out 时脚本自己写到 .mr-walkthrough/<project>-<number>
 
 # GitLab / GitHub / Gitee / Bitbucket：直接给链接

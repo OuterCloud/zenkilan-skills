@@ -40,6 +40,23 @@ lola install zenkilan-skills -a opencode      # OpenCode
 lola install zenkilan-skills -a claude-code --scope user
 ```
 
+### Codex / DeepSeek Harness
+
+两者都从用户级目录 `~/.agents/skills/` 读取技能（Codex 同时读 `~/.codex/skills/`），装一次两边通用：
+
+```bash
+ln -s $(pwd)/skills/mr-walkthrough ~/.agents/skills/mr-walkthrough
+
+# 只给 Codex：mkdir -p ~/.codex/skills && cp -R skills/mr-walkthrough ~/.codex/skills/
+```
+
+新开会话后：
+
+- DeepSeek Harness：输入 `/mr-walkthrough`，或直接说「把 <MR 链接> 做成走读页」
+- Codex：`$mr-walkthrough 把 <MR 链接> 做成走读页`；首次运行会要求批准联网与写文件（Codex 默认只读 + 限网）
+
+技能目录在会话启动时扫描，装完必须新开会话才可见。
+
 ### Claude Code（直接从 Git 安装）
 
 ```bash

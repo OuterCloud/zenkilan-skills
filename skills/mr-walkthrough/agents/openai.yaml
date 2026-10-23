@@ -1,0 +1,6 @@
+interface:
+  display_name: "MR Walkthrough"
+  short_description: "把 MR/PR 读透，生成离线 HTML 走读页"
+  default_prompt: "Use $mr-walkthrough to turn this MR into a walkthrough: <MR URL>"
+policy:
+  allow_implicit_invocation: true
