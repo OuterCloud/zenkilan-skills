@@ -1,4 +1,4 @@
-// 参考实现，
+// 参考实现，提炼自一个真实项目的 hooks/useTextWidth.test.ts。
 // 复制到项目时按本项目的 i18n / 主题 token 适配，不要直接改这里。
 import { renderHook } from "@testing-library/react"
 import { describe, expect, test, vi } from "vitest"

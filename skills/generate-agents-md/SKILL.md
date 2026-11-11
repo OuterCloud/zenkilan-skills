@@ -165,7 +165,7 @@ packages/web/AGENTS.md     # 专属：组件结构、状态管理
 #    CLAUDE.md 追加内容（memory、/init 等），若它是指向 AGENTS.md 的 symlink，
 #    这些写入会静默污染 AGENTS.md，冲掉人工维护的规则。已实测复现。
 # ✅ 用一行指针文件：工具照样能追加，但脏内容留在 CLAUDE.md，AGENTS.md 不受影响。
-#    （多个真实仓库 就是这么做的）
+#    （多个真实仓库就是这么做的）
 [ -e CLAUDE.md ] || [ -L CLAUDE.md ] || echo '@AGENTS.md' > CLAUDE.md
 
 # Aider：先查再写，避免重复追加

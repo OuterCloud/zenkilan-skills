@@ -1,4 +1,4 @@
-// 参考实现，
+// 参考实现，提炼自一个真实项目的 hooks/useTextWidth.ts。
 // 复制到项目时按本项目的 i18n / 主题 token 适配，不要直接改这里。
 // 注意：这一份已经包含「依赖必须用文案内容、不能用 items 数组引用」的修复，详见 useTextWidths 上方注释。
 import { useEffect, useRef, useState } from "react"
