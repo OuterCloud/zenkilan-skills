@@ -1,7 +1,19 @@
 // 参考实现，
 // 复制到项目时按本项目的 i18n / 主题 token 适配，不要直接改这里。
-import { useEffect, useState } from "react"
+// 注意：这一份已经包含「依赖必须用文案内容、不能用 items 数组引用」的修复，详见 useTextWidths 上方注释。
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
+/** 两次量宽结果是否等价：都为 null，或每个元素都相同。 */
+function sameWidths(
+  prev: number[] | null,
+  next: number[] | null
+): boolean {
+  if (prev === next) return true
+  if (prev === null || next === null) return false
+  if (prev.length !== next.length) return false
+  return prev.every((w, i) => w === next[i])
+}
 
 /**
  * 量出一组文案在「当前语言」下各自的像素宽度。
@@ -30,11 +42,28 @@ export function useTextWidths(
   const { i18n } = useTranslation()
   const [widths, setWidths] = useState<number[] | null>(null)
 
+  /*
+    依赖里不能直接用 items 数组本身。
+
+    调用方通常写成内联数组字面量（例如 [t("run"), t("copy")]），每次渲染都是新引用，
+    effect 会跟着重跑：量宽 -> setWidths -> 重渲染 -> 再量宽。量宽是真的往 body 挂节点，
+    这个自激循环能把主线程占满，React 的 transition 永远提交不了，表现为 URL 变了
+    但页面不更新、控制台却没有任何报错（缺陷 7165050794 的连带问题）。
+
+    所以用文案内容做依赖：只有文案真的变了（例如切语言）才重新量。
+    数组用 \u0000 拼接，文案里不会出现这个字符，不会拼出歧义。
+  */
+  const itemsKey = items.join("\u0000")
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+
   useEffect(() => {
     let cancelled = false
     const measure = () => {
       if (cancelled) return
-      setWidths(measureLabelWidths(items, i18n.language, fontSizePx))
+      const next = measureLabelWidths(itemsRef.current, i18n.language, fontSizePx)
+      // 量到的宽度一模一样时不再 setState，避免无意义的重渲染。
+      setWidths((prev) => (sameWidths(prev, next) ? prev : next))
     }
 
     measure()
@@ -54,7 +83,7 @@ export function useTextWidths(
     }
     // items 由调用方按当前语言翻译得到；语言变化时内容会变，
     // 这里同时显式带上 language 作为触发条件，避免调用方传入稳定数组时漏掉重算。
-  }, [items, i18n.language, fontSizePx])
+  }, [itemsKey, i18n.language, fontSizePx])
 
   return widths
 }

@@ -46,7 +46,12 @@ metadata:
 - 设 `host.lang = i18n.language`（中日韩按语言选字形，不设会偏）；
 - **显式设 `font-size`**，见下面第 3 步的坑；
 - `document.fonts.ready` 之后再量一次（自定义字体晚到会让首屏测值偏窄）；
-- 全 0 视为「量不到」返回 `null`（jsdom 无布局），交给调用方兜底。
+- 全 0 视为「量不到」返回 `null`（jsdom 无布局），交给调用方兜底；
+- **effect 依赖必须是文案内容，不能是 `items` 数组引用**，见第 4 步。
+
+> 这份参考实现曾经就是错的：`useEffect` 依赖写成 `[items, ...]`，而调用方传的是内联数组字面量，
+> 于是每次渲染都重新量宽 + `setState`，浏览器实测每秒上百次重渲染，把 React 的 transition 拖死——
+> 页面点任何按钮 URL 变了但画面不动，而且控制台一条报错都没有。参考文件已修，别再改回去。
 
 不用 canvas：canvas 要显式指定字体，等于把 antd 字体栈抄一份进代码，主题一改就悄悄失准，而且 jsdom 没有 canvas 会刷噪声。
 
@@ -69,7 +74,44 @@ metadata:
 所以 `useTextWidths(items, fontSizePx)` 必须接收 `token.fontSize`，并写进测量节点的 `font-size`。
 **排查列宽偏宽时，先量一下测量节点的 computed font-size，再怀疑公式。**
 
-### 4. 间距常量必须和 `<Space size>` 共用
+### 4. 把「重渲染自激」堵死（最容易埋雷的一步）
+
+调用方几乎一定写成内联数组：
+
+```tsx
+const actionLabels = [t("run"), t("manage.copy"), t("manage.viewRecords")]
+const widths = useTextWidths(actionLabels, token.fontSize)   // 每次渲染都是新数组
+```
+
+如果 hook 里依赖直接写 `[items, i18n.language, fontSizePx]`，就会形成闭环：
+
+```
+渲染 -> effect 重跑 -> 量宽（往 body 挂 span）-> setWidths -> 渲染 -> effect 又重跑 ...
+```
+
+实测后果：每秒上百次提交，React 的 transition 永远提交不掉。**表现极具欺骗性**——
+点按钮 URL 变了、画面不动、没有 loading、控制台零报错、主线程也不卡（JS 照样能执行），
+很容易被误判成路由或 i18n 的 Suspense 问题。真实事故就是按这个方向误诊了一轮。
+
+正确写法（两个措施都要）：
+
+```ts
+// 1) 依赖用文案内容，文案真的变了（如切语言）才重量
+const itemsKey = items.join("\u0000")
+const itemsRef = useRef(items)
+itemsRef.current = items
+
+// 2) 量到的宽度和上次一样时不要 setState，切断无意义重渲染
+setWidths((prev) => (sameWidths(prev, next) ? prev : next))
+```
+
+`items` 用 `\u0000` 拼接做 key：文案里不会出现这个字符，不会拼出歧义。
+
+**验收必须包含一条「多次渲染只量一次宽」的回归用例**（见 `references/useTextWidth.test.ts`）：
+用 `renderHook` 传内联数组，`rerender()` 若干次，断言测量节点挂载次数不变。
+把 hook 改回 `[items]` 这条用例要能失败——不能失败的用例等于没有。
+
+### 5. 间距常量必须和 `<Space size>` 共用
 
 ```ts
 const ACTION_ITEM_GAP = 8   // 与下面 <Space size={ACTION_ITEM_GAP}> 同一个值
@@ -77,7 +119,7 @@ const ACTION_ITEM_GAP = 8   // 与下面 <Space size={ACTION_ITEM_GAP}> 同一�
 
 两处不一致的后果：宽了右留白、窄了折行。抽成常量给两边共用，禁止在 render 里写别的字面量。
 
-### 5. 让某一列吸收富余，并推导 scroll.x
+### 6. 让某一列吸收富余，并推导 scroll.x
 
 ```tsx
 // 名称列刻意不设 width：整张表必须留一列承接富余
@@ -106,7 +148,17 @@ const ACTION_COL_WIDTH_FALLBACK = 240  // 取英文实测值向上留余量
    - 断言同一批文案在英文下比中文宽；
 3. 真实浏览器里量出中英文的**实际列宽像素**，列成改动前 / 改动后对比表；
 4. 切英文确认最长文案不折行（截图为证）；
-5. 窗口拉宽/拉窄，确认富余落在预期的那一列，操作列宽度不变。
+5. 窗口拉宽/拉窄，确认富余落在预期的那一列，操作列宽度不变；
+6. 页面挂上后静置观察：React root 不应持续重渲染。在控制台跑下面这段，`flips` 应该是个位数：
+
+```js
+const r = document.querySelector('#root')
+const k = Object.keys(r).find((x) => x.startsWith('__reactContainer'))
+const root = r[k].stateNode
+let flips = 0, last = root.current
+const iv = setInterval(() => { if (root.current !== last) { flips++; last = root.current } }, 0)
+setTimeout(() => { clearInterval(iv); console.log('flips', flips) }, 2000)
+```
 
 无头 Chrome 量 DOM 的写法（拿不到 DevTools 时用）：
 
@@ -124,6 +176,7 @@ const ACTION_COL_WIDTH_FALLBACK = 240  // 取英文实测值向上留余量
 | 窗口变宽操作列跟着变宽 | 有其他列没设 width，富余被按比例摊开 |
 | 首屏窄、刷新后变宽 | 测完字体就绪又量了一次，属预期；若稳定偏窄说明没在 `fonts.ready` 后重量 |
 | 测试里列宽一直是兜底值 | jsdom 不做布局，属预期，不要为此改断言 |
+| **点任意按钮 URL 变了、画面不动、控制台零报错** | 量宽 hook 的 effect 依赖写了 `items` 数组，调用方传内联字面量 -> 无限重渲染把 transition 拖死（见第 4 步）。排查：在控制台量 2 秒内 React root 的 `current` 翻转次数，正常是几次，中毒是上百次 |
 
 ## 适用范围
 

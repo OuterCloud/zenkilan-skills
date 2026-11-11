@@ -36,6 +36,11 @@ const NAME_COL_MIN_WIDTH = 250
   /*
     文案必须和下面 render 里 t(...) 用的是同一批 key。
     末项「更多」是图标不是文字，宽度按一个字号算，所以不放进这个数组。
+
+    这里允许写成内联数组（每次渲染都是新引用）：useTextWidths 内部按文案内容做依赖，
+    不会因为引用变化重新量宽。前提是那份 hook 用的是修复后的版本（见 references/useTextWidth.ts）。
+    如果换成自己重写、依赖直接写 [items]，就会每次渲染都量一遍并 setState，
+    形成每秒上百次的重渲染，页面点哪都不跳（详见 SKILL.md「常见误判」）。
   */
   const actionLabels = [
     t("run", "运行"),

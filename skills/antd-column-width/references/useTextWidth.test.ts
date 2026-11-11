@@ -1,8 +1,9 @@
 // 参考实现，
 // 复制到项目时按本项目的 i18n / 主题 token 适配，不要直接改这里。
+import { renderHook } from "@testing-library/react"
 import { describe, expect, test, vi } from "vitest"
 
-import { measureLabelWidths, sumLabelsWidth } from "./useTextWidth"
+import { measureLabelWidths, sumLabelsWidth, useTextWidths } from "./useTextWidth"
 
 describe("sumLabelsWidth", () => {
   test("空列表没有宽度", () => {
@@ -59,5 +60,42 @@ describe("useTextWidths 的字号", () => {
     const large = measureLabelWidths(["Run Records"], "en", 16)
     // jsdom 下两者都是 null，这条只在真实浏览器有意义；这里保证不抛错
     expect(small === null || large === null || large > small).toBe(true)
+  })
+})
+
+/*
+  回归：调用方每次渲染都传新数组时，不能陷入「量宽 -> setState -> 重渲染 -> 再量宽」。
+
+  这一步写错会让整个页面每秒重渲染上百次，React 的 transition 永远提交不了，
+  表现为点按钮后 URL 变了但页面不更新、控制台没有任何报错。
+  这里统计「往 body 挂测量节点」的次数，用「每次渲染重新构造数组」模拟内联字面量的调用方式。
+*/
+describe("useTextWidths 不会因为数组引用变化而反复测量", () => {
+  test("渲染多次只量一次", () => {
+    let measureCount = 0
+    const originalAppend = document.body.appendChild.bind(document.body)
+    const spy = vi.spyOn(document.body, "appendChild").mockImplementation((node) => {
+      const el = node as HTMLElement
+      if (el.style?.position === "absolute") measureCount += 1
+      return originalAppend(node)
+    })
+
+    try {
+      const { rerender } = renderHook(() =>
+        // 内联数组字面量：每次渲染都是新引用，内容不变
+        useTextWidths(["运行", "复制", "运行记录"], 14)
+      )
+      const afterMount = measureCount
+      expect(afterMount).toBeGreaterThan(0)
+
+      for (let i = 0; i < 5; i += 1) {
+        rerender()
+      }
+
+      // 修好之前这里是 afterMount * 6：每次渲染都重新量一遍
+      expect(measureCount).toBe(afterMount)
+    } finally {
+      spy.mockRestore()
+    }
   })
 })
