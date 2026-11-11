@@ -1,0 +1,27 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>shell fixed</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px -apple-system, "PingFang SC", sans-serif; }
+  /* 与 shell-clipped.html 只差一处：外壳不再写死 min-width，溢出交给内层表格自己滚 */
+  .shell { display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden; }
+  .layout { flex: 1; display: flex; min-width: 0; overflow: hidden; }
+  .sider { flex: 0 0 80px; background: #fafafa; }
+  .main { flex: 1; overflow: auto; padding: 16px; }
+  /* 表格自身其实可滚，但外壳已经把它裁掉了 */
+  .table-wrap { overflow-x: auto; width: 100%; min-width: 0; border: 1px solid #ddd; }
+  .row { display: grid; grid-template-columns: 36px minmax(200px, 1fr) 96px 152px 120px; column-gap: 24px; min-width: 700px; padding: 8px 12px; }
+</style></head>
+<body>
+<div class="shell">
+  <div class="layout">
+    <div class="sider">nav</div>
+    <div class="main">
+      <div class="table-wrap">
+        <div class="row"><span></span><span>demo-worker-alpha</span><span>实例 1024</span><span>区域 A, 区域 B</span><span>运行中</span></div>
+        <div class="row"><span></span><span>demo-api-server</span><span>实例 99</span><span>区域 A</span><span>失败</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

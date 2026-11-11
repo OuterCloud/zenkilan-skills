@@ -3,7 +3,7 @@ description: "个人沉淀的 AI 编码 Agent 自定义 Skills 合集——前�
 version: "1.2.0"
 modules:
   - name: "zenkilan-skills"
-    description: "9 个实用 AI coding skills：web-probe（前端自动化验证）、feishu-doc-collab（飞书文档协作）、feishu-chat-collab（飞书群聊协作/机器人）、feishu-project-collab（飞书项目/Meego 工作项协作）、generate-agents-md（项目 AGENTS.md 生成）、sync-mr（MR 同步流程）、mr-walkthrough（MR/PR 走读 HTML 生成，支持 GitLab/GitHub/Gitee/Bitbucket/通用 diff）、pptx-gen（基于模板生成 PPT）、antd-column-width（antd Table 列宽按语言自适应）"
+    description: "10 个实用 AI coding skills：web-probe（前端自动化验证）、overflow-debug（横向溢出/显示不全先量后改）、feishu-doc-collab（飞书文档协作）、feishu-chat-collab（飞书群聊协作/机器人）、feishu-project-collab（飞书项目/Meego 工作项协作）、generate-agents-md（项目 AGENTS.md 生成）、sync-mr（MR 同步流程）、mr-walkthrough（MR/PR 走读 HTML 生成，支持 GitLab/GitHub/Gitee/Bitbucket/通用 diff）、pptx-gen（基于模板生成 PPT）、antd-column-width（antd Table 列宽按语言自适应）"
     version: "1.2.0"
     repository: "https://github.com/OuterCloud/zenkilan-skills.git"
     tags:
@@ -18,4 +18,5 @@ modules:
       - "merge-request"
       - "code-review"
       - "pptx"
+      - "overflow"
       - "chinese"

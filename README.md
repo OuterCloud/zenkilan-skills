@@ -17,6 +17,7 @@
 | [mr-walkthrough](./skills/mr-walkthrough/) | MR/PR 走读：读透 GitLab / GitHub / Gitee / Bitbucket 的 MR/PR（也支持任意 diff 链接与本地分支对比），生成单文件离线 HTML——功能影响面、文件地图、端到端链路、设计取舍、按依赖排序的代码步骤、数据库改造、测试设计与人工验收 |
 | [pptx-gen](./skills/pptx-gen/) | 基于模板生成专业 PPT：分析模板结构、规划内容映射、自动填充生成 |
 | [antd-column-width](./skills/antd-column-width/) | antd Table 列宽自适应：fixed 列（操作列）按当前语言运行时实测文案宽度，中文不留白、英文不折行 |
+| [overflow-debug](./skills/overflow-debug/) | 横向溢出/显示不全排查：用脚本量真实 DOM，分清「能滚」和「被裁」，先定位裁切点再改 CSS |
 
 ## 一键安装
 
@@ -84,20 +85,21 @@ ln -s $(pwd)/skills/sync-mr ~/.kiro/skills/sync-mr
 ln -s $(pwd)/skills/mr-walkthrough ~/.kiro/skills/mr-walkthrough
 ln -s $(pwd)/skills/pptx-gen ~/.kiro/skills/pptx-gen
 ln -s $(pwd)/skills/antd-column-width ~/.kiro/skills/antd-column-width
+ln -s $(pwd)/skills/overflow-debug ~/.kiro/skills/overflow-debug
 ```
 
 ### Cursor
 
 ```bash
 mkdir -p .cursor/rules
-for skill in web-probe generate-agents-md sync-mr mr-walkthrough feishu-doc-collab feishu-chat-collab feishu-project-collab pptx-gen antd-column-width; do
+for skill in web-probe overflow-debug generate-agents-md sync-mr mr-walkthrough feishu-doc-collab feishu-chat-collab feishu-project-collab pptx-gen antd-column-width; do
   sed '1,/^---$/{ /^---$/!d; }' skills/$skill/SKILL.md | \
     sed '1s/^---$/---\ndescription: "'$skill'"\nglobs:\nalwaysApply: false\n---/' \
     > .cursor/rules/$skill.mdc
 done
 ```
 
-> 带脚本的 skill（`mr-walkthrough`、`web-probe`、`pptx-gen`）只有 `.mdc` / 斜杠命令不够用：脚本目录要按 SKILL.md 开头写的路径另外放好（例如软链到 `~/.kiro/skills/<skill>`），否则 agent 读得到流程、调不到工具。
+> 带脚本的 skill（`mr-walkthrough`、`web-probe`、`pptx-gen`、`overflow-debug`）只有 `.mdc` / 斜杠命令不够用：脚本目录要按 SKILL.md 开头写的路径另外放好（例如软链到 `~/.kiro/skills/<skill>`），否则 agent 读得到流程、调不到工具。
 
 ### Windsurf
 
@@ -127,6 +129,7 @@ read:
 | feishu-project-collab | 飞书项目（Meego）MCP Token（[配置方式](./skills/feishu-project-collab/README.md)） |
 | generate-agents-md | 无 |
 | antd-column-width | 无（纯流程 + 参考实现；需要项目里有 antd v5） |
+| overflow-debug | Node.js + Chrome（无 npm 依赖，脚本自起独立无头实例；Linux/非标准安装位置用 `CHROME_PATH` 指定） |
 | sync-mr | `glab` CLI（GitLab MR 操作） |
 | mr-walkthrough | Python 3（仅标准库）+ `git`；凭证按平台读 `GITLAB_TOKEN` / `GITHUB_TOKEN` / `GITEE_TOKEN` / `BITBUCKET_TOKEN`，或复用 `glab` / `gh` 登录态；也支持无 API 的 `.diff` 链接与本地两分支对比 |
 | pptx-gen | Python 3 + `lxml` + `PyMuPDF`；Keynote（macOS）或 LibreOffice（视觉 QA）；Node.js + PptxGenJS 仅用于用户明确无模板时的可选自由设计回退 |
